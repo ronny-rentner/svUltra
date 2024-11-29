@@ -1,10 +1,10 @@
-= svUltra =
+# svUltra
 
 This is currently a collection of Svelte preprocessors that allow to build a hierarchical component tree with a consistent style. It's can be most efficiently used with a 'class-less' CSS framework like PicoCSS.
 
 **NOTE: It's not ye t a real Javascript npm package and there are also no unit tests, yet.**
 
-== Example Svelte Component ==
+## Example Svelte Component
 
 In the following component, we can style the 3rd party `Icon` component from Iconify using our `transformComponentStyles` preprocessor. What happens under the hood is that the `Icon` CSS selector is transformed to something like `.Icon-c1eafff6`. The hash is dependent on the content of the CSS rule. This CSS selector is then added to the `class` parameter of any Icon component found. This only works if the component is actually making use of an `class` attribute.
 
@@ -22,7 +22,7 @@ becomes
 
 Note that the class attribute is moved to the end of the element so it would overwrite any potential class attribute in the `...rest` map.
 
-=== IconWithLabel.svelte ===
+### IconWithLabel.svelte
 ```
 <script>
   import Icon from '@iconify/svelte';
@@ -79,7 +79,7 @@ Note that the class attribute is moved to the end of the element so it would ove
 {/if}
 ```
 
-== Example `svelte.config.js` ==
+## Example `svelte.config.js`
 
 ```
 import sveltePreprocess from 'svelte-preprocess';
