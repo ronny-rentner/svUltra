@@ -1,0 +1,48 @@
+{
+  "name": "svUltra",
+  "version": "0.0.1-alpha",
+  "description": "Svelte 5 preprocessors for consistent component styling and syntax sugar",
+  "type": "module",
+  "main": "index.js",
+  "files": [
+    "index.js",
+    "src"
+  ],
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "demo": "vite --config demo/vite.config.js",
+    "demo:build": "vite build --config demo/vite.config.js",
+    "demo:preview": "vite preview --config demo/vite.config.js"
+  },
+  "keywords": [
+    "svelte",
+    "svelte5",
+    "preprocessor",
+    "css",
+    "styling"
+  ],
+  "author": "",
+  "license": "ISC",
+  "peerDependencies": {
+    "svelte": "^5.0.0"
+  },
+  "dependencies": {
+    "chalk": "^5.3.0",
+    "estree-walker": "^3.0.3",
+    "loglevel": "^1.8.1",
+    "magic-string": "^0.30.14",
+    "marked": "^15.0.7",
+    "postcss-selector-parser": "^7.1.0"
+  },
+  "devDependencies": {
+    "@anthropic-ai/claude-code": "^0.2.49",
+    "@iconify-icons/mdi": "^1.2.48",
+    "@iconify-icons/ph": "^1.2.5",
+    "@iconify/icons-ph": "^1.2.5",
+    "@iconify/svelte": "^4.2.0",
+    "@sveltejs/vite-plugin-svelte": "^5.0.3",
+    "svelte": "^5.2.10",
+    "svelte-preprocess": "^6.0.3",
+    "vite": "^6.2.2"
+  }
+}
