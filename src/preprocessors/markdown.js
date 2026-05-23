@@ -135,7 +135,7 @@ function applyReplacement(markdownContent, patternWithFlags, replacement) {
  * markdown file, applies regex replacements (if any), replaces the tag with compiled HTML,
  * and generates a source map. If no file attribute is provided, it uses the current file's basename with .md extension.
  */
-async function processMarkdownTags(node, magicString, filename, rootPath) {
+async function processMarkdownTags(node, magicString, filename, rootPath, deps) {
   if (node.type === 'Element' && node.name === 'markdown') {
     log.debug('Found markdown tag', filename);
 
@@ -157,6 +157,7 @@ async function processMarkdownTags(node, magicString, filename, rootPath) {
 
     const resolvedFilePath = resolve(rootPath || dirname(filename), filePath);
     log.debug('Processing markdown file', resolvedFilePath);
+    deps.push(resolvedFilePath); 
 
     try {
       let markdownContent = await readFile(resolvedFilePath, 'utf-8');
@@ -181,7 +182,7 @@ async function processMarkdownTags(node, magicString, filename, rootPath) {
 
   if (node.children && node.children.length) {
     for (const child of node.children) {
-      await processMarkdownTags(child, magicString, filename, rootPath);
+      await processMarkdownTags(child, magicString, filename, rootPath, deps);
     }
   }
 }
@@ -190,6 +191,7 @@ function markdownPreprocessor(options = {}) {
   const { path: rootPath } = options;
 
   return {
+    name: 'markdown',
     async markup({ content, filename }) {
       if (filename.includes('node_modules')) {
         return;
@@ -198,13 +200,16 @@ function markdownPreprocessor(options = {}) {
       log.debug('Processing file', filename);
       const ast = parse(content);
       const magicString = new MagicString(content);
-      await processMarkdownTags(ast.html, magicString, filename, rootPath);
+      const deps = []; 
 
-      const code = magicString.toString();
-      const map = magicString.generateMap({ source: filename, includeContent: true });
+      await processMarkdownTags(ast.html, magicString, filename, rootPath, deps);
 
       log.debug('Finished processing file', filename);
-      return { code, map };
+      return { 
+        code: magicString.toString(),
+        map:  magicString.generateMap({ source: filename, includeContent: true }),
+        dependencies: deps
+      };
     },
   };
 }
