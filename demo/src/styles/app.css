@@ -1,18 +1,438 @@
-/* Global styles for svUltra demo */
+/* ROOT VARIABLES */
 
-/* Ripple animation */
+:root {
+  /* Base font size in pixel and then element font sizes in rem */
+  --pico-font-size: 16px;
+  /*--pico-font-size: 100%;*/
+  --pico-font-family: Arial, Helvetica, sans-serif;
+  /*font-size: calc(var(--pico-font-size) * 0.9);*/
+  --pico-progress-color: rgba(255, 255, 255, 0.2);
+  --pico-outline-width: 0.125rem;
+
+  --pico-table-background-color: var(--pico-background-color);
+  --pico-table-alt-background-color: #f0f0f0;
+
+  --pico-modal-overlay-backdrop-filter: blur(0.5rem);
+
+  --pico-font-family-emoji: "Twemoji Country Flags", "Apple Color Emoji","Segoe UI Emoji","Segoe UI Symbol","Noto Color Emoji";
+
+  --pico-typography-spacing-top: var(--pico-typography-spacing-vertical);
+
+  --pico-form-element-spacing-vertical: 0.5rem;
+  --pico-form-element-spacing-horizontal: 0.75rem;
+
+  /*
+  --pico-font-family-sans-serif: Inter, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, Helvetica, Arial, "Helvetica Neue", sans-serif, var(--pico-font-family-emoji);
+  --pico-line-height: calc(1.5 * var(--scaling-factor));
+  --pico-form-element-spacing-vertical: calc(1rem * var(--scaling-factor));
+  --pico-form-element-spacing-horizontal: calc(1.25rem * var(--scaling-factor));
+  --pico-border-radius: calc(0.25rem * var(--scaling-factor));
+   */
+
+  --pico-error-color: var(--pico-del-color);
+
+  --pico-spacing-25: calc(var(--pico-spacing) * 0.25);
+  --pico-spacing-50: calc(var(--pico-spacing) * 0.50);
+  --pico-spacing-75: calc(var(--pico-spacing) * 0.75);
+
+  scrollbar-color: #666 transparent !important;
+  scrollbar-width: thin;
+}
+
+/* LIGHT THEME OVERRIDES */
+
+/* Need to mention 'not dark', otherwise it does not override Pico built in styles */
+:root:not([data-theme="dark"]), [data-theme="light"] {
+  /* Light theme colors */
+  /*
+  --pico-primary: rgb(0, 107, 112);
+  --pico-primary-background: rgb(0, 107, 112);
+  --pico-primary-hover: #0056b3;
+  --pico-primary-hover-background: #0069d9;
+  --pico-primary-underline: rgba(0, 123, 255, 0.5);
+  --pico-primary-inverse: #ffffff;
+  --pico-switch-thumb-box-shadow: 0 0 0 rgba(0, 0, 0, 0);
+  --pico-text-selection-color: rgba(0, 123, 255, 0.25);
+  --pico-background: #ffffff;
+  --pico-text: #000000;
+  --pico-text-inverted: #ffffff;
+
+
+   */
+
+  --pico-dropdown-hover-background-color: rgb(4, 120, 120, 0.1);
+
+  /* Make dropzone background greenish in the light theme */
+  --pico-dropzone-background-color: rgb(4, 120, 120, 0.1);
+  --pico-dropzone-background-hover-color: rgb(4, 120, 120, 0.2);
+
+  --pico-background-color: hsl(24 33% 97%/1);
+
+  --pico-box-shadow: rgba(0, 0, 0, 0.24) 0rem 0.25rem 0.5rem;
+
+  --pico-modal-overlay-background-color: rgba(232, 234, 237, 0.5);
+
+  --pico-card-sectioning-background-color: #f4f4f4;
+
+}
+
+/* DARK THEME OVERRIDES */
+
+:root[data-theme="dark"] {
+
+  --pico-table-alt-background-color: var(--pico-muted-border-color);
+
+  --pico-dropzone-background-color: var(--pico-muted-border-color);
+  --pico-dropzone-background-hover-color: var(--pico-secondary-focus);
+
+  /* Dark theme colors */
+  /*
+  --pico-primary: rgb(0, 107, 112);
+  --pico-primary-background: rgb(0, 107, 112);
+  --pico-primary-hover: #555555;
+  --pico-primary-hover-background: #666666;
+  --pico-primary-focus: rgba(51, 51, 51, 0.375);
+  --pico-primary-underline: rgba(51, 51, 51, 0.5);
+  --pico-primary-inverse: #ffffff;
+  --pico-switch-thumb-box-shadow: 0 0 0 rgba(0, 0, 0, 0);
+  --pico-text-selection-color: rgba(51, 51, 51, 0.1875);
+  --pico-background: #121212;
+  --pico-text: #e0e0e0;
+  --pico-text-inverted: #121212;
+   */
+}
+
+/******************/
+/* GENERAL SIZING */
+/******************/
+
+/* We use the font-size to define a base size for each screen size */
+
+/* TODO: use CSS preprocessor to not hardcode pixels twice */
+@media (max-width: 1024px) {
+  :root {
+    --pico-font-size: 15px;
+  }
+}
+
+/* This is the default */
+@media (min-width: 1024px) {
+  :root {
+    --pico-font-size: 15px;
+  }
+}
+
+@media (min-width: 1280px) {
+  :root {
+    --pico-font-size: 16px;
+  }
+}
+
+/* Replacement defined in vite.config.js:
+ * ['@media large',   '@media (min-width: 1536px)'],
+   ['@large',         '@media (min-width: 1536px)'],
+ */
+@media (min-width: 1536px) {
+  :root {
+    --pico-font-size: 17px;
+  }
+}
+
+html {
+  overflow: auto;
+}
+
+html > body {
+  overflow: hidden;
+}
+
+html > body > header {
+  padding: 0;
+}
+
+#app {
+  overflow: auto;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  scrollbar-gutter: stable;
+  /* Hash navigation lands below the sticky demo header. */
+  scroll-padding-top: 5rem;
+
+  /* Smallest screen size we support */
+  min-width: 360px;
+}
+
+/*
+main h1:first-of-type {
+margin-top: 1rem;
+}
+ */
+
+input[type='checkbox'] {
+  flex-shrink: 0;
+}
+
+label:has(input[type='checkbox']) {
+  padding: 0.1rem;
+  border-radius: 0.25rem;
+}
+
+label:has(input[type='checkbox']):hover {
+  color: var(--pico-primary-hover);
+}
+
+textarea {
+  display: inline-block;
+}
+
+
+h1, h2, h3, h4, h5, h6 {
+  --pico-typography-spacing-top: var(--pico-typography-spacing-vertical);
+  /*margin-top: 0;*/
+  font-family: var(--pico-font-family-sans-serif);
+  font-weight: 700;
+
+  svg {
+    vertical-align: baseline;
+  }
+}
+
+[role="button"], [type="button"], [type="file"]::file-selector-button, [type="reset"], [type="submit"], button {
+  font-family: var(--pico-font-family-sans-serif);
+  overflow: hidden;
+  position: relative;
+  --pico-font-weight: bold;
+  /*--pico-form-element-spacing-vertical: 0.35rem;*/
+  flex-shrink: 0;
+}
+
+kbd {
+  font-size: 75%;
+  background-color: var(--pico-secondary-background);
+  vertical-align: middle;
+}
+
+.no-selection
+{
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+.error-message, 
+.error 
+{
+  --pico-color: var(--pico-error-color);
+  --pico-font-weight: bold;
+}
+
+/* TRANSITONS & EFFECTS */
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* DROPDOWN */
+
+/*
+details.dropdown summary + ul li a:hover {
+box-shadow: 0 0 0 var(--pico-outline-width) var(--pico-dropdown-hover-background-color);
+}
+details.dropdown summary + ul li a:focus-visible {
+box-shadow: 0 0 0 var(--pico-outline-width) var(--pico-form-element-focus-color);
+}
+details.dropdown summary + ul li a {
+padding: calc(var(--pico-form-element-spacing-vertical) * .5) calc(var(--pico-form-element-spacing-horizontal) * 2);
+margin: 1px;
+}
+ */
+
+details.dropdown {
+  position: relative;
+  /*display: inline-block;*/
+}
+details.dropdown > summary {
+  display: block;
+  position: relative;
+}
+details.dropdown > ul {
+  overflow: hidden;
+}
+
+details.dropdown summary::after, details.dropdown > a::after, details.dropdown > button::after {
+  width: 0.75rem;
+  margin-inline: .35rem .1rem;
+  background: var(--pico-color);
+  mask: var(--pico-icon-chevron) center;
+  content: "";
+
+}
+
+details.dropdown summary.mobile::after {
+  margin-inline: 0;
+}
+
+details.dropdown[open] summary::before {
+  inset: 0;
+}
+
+/* ACCORDION */
+
+article.accordion {
+  overflow: hidden;
+
+  hr {
+    --pico-typography-spacing-vertical: 0.5rem;
+  }
+}
+
+/* RIPPLE EFFECT */
+
 .ripple {
   position: absolute;
   border-radius: 50%;
-  background-color: rgba(255, 255, 255, 0.4);
+  background: rgba(225, 225, 225, 0.5);
   transform: scale(0);
   animation: ripple-animation 0.6s linear;
-  pointer-events: none;
+  pointer-events: none; /* Let clicks pass through to the element */
+}
+
+:root[data-theme="dark"] .ripple {
+  background: rgba(255, 255, 255, 0.5);
 }
 
 @keyframes ripple-animation {
   to {
     transform: scale(4);
     opacity: 0;
+  }
+}
+
+/*********************/
+/* PICO CSS BUGFIXES */
+/*********************/
+
+
+
+[role="search"] input[role="combobox"]:not(:last-child) {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+
+[role="group"]:has(textarea:focus) [role="button"], [role="group"]:has(textarea:focus) [type="button"], [role="group"]:has(textarea:focus) [type="submit"], [role="group"]:has(textarea:focus) button {
+  --pico-button-box-shadow: 0 0 0 var(--pico-border-width) var(--pico-primary-border);
+  --pico-button-hover-box-shadow: 0 0 0 var(--pico-border-width) var(--pico-primary-hover-border);
+
+}
+
+article footer :is([type="button"], [type="reset"], [type="submit"]) {
+  margin-bottom: 0;
+}
+
+/* Pico styles <code> as inline-block with padding — keep it inline in prose */
+code {
+  display: inline;
+  padding: 0;
+}
+
+/*
+[role="search"] input[type="submit"]:not(:first-child) {
+margin-left: unset;
+box-shadow: none;
+}
+ */
+
+/* ICONIFY */
+svg.iconify { vertical-align: -0.25rem; }
+
+/* RECAPTCHA */
+.grecaptcha-badge { visibility: hidden; }
+
+/* TOOLTIPS — anchor-positioned so they escape ancestor overflow:hidden (e.g.
+   Button's ripple containment). anchor-scope confines each host's anchor to
+   its own pseudo-elements; inset values use anchor() so they resolve against
+   the host instead of the viewport (the containing block under position:fixed).
+   Pico's transform/animation/opacity are independent of inset and unaffected. */
+[data-tooltip] {
+  anchor-name:  --tooltip-host;
+  anchor-scope: --tooltip-host;
+
+  &::before {
+    width: max-content;
+    max-width: 22rem;
+    word-wrap: break-word;
+    white-space: normal;
+  }
+
+  &::before,
+  &::after {
+    position: fixed;
+    position-anchor: --tooltip-host;
+    inset: auto auto anchor(top) anchor(center);
+  }
+
+  &[data-placement="bottom"]::before,
+  &[data-placement="bottom"]::after { inset: anchor(bottom) auto auto anchor(center); }
+
+  &[data-placement="left"]::before,
+  &[data-placement="left"]::after  { inset: anchor(center) anchor(left) auto auto; }
+
+  &[data-placement="right"]::before,
+  &[data-placement="right"]::after { inset: anchor(center) auto auto anchor(right); }
+}
+
+/* DISABLED LINKS */
+a[disabled] {
+  pointer-events: none;
+  color: var(--pico-color);
+  &:hover {
+    text-decoration: none;
+    color: var(--pico-color);
+  }
+}
+
+
+
+/* MISC */
+
+@keyframes underlineAnimateRight {
+  from { right: 100%; }
+  to { right: -5%; }
+}
+
+.underline--magical {
+  position: relative;
+
+  &::before {
+    content: "";
+    transform: skew(-28deg) translateX(4%) rotate(-2deg);
+    background-image: linear-gradient(120deg, #33C6C8 0%, #047878 100%);
+    background-repeat: no-repeat;
+    background-position: 0 88%;
+    background-size: 100% 0.6rem;
+    z-index: -1;
+    position: absolute; /* Position the pseudo-element absolutely */
+    top: 0;
+    left: 0;
+    right: 100%;
+    bottom: 0; /* Cover the entire element */
+    transition: background-size .25s ease-in;
+    animation: underlineAnimateRight 0.5s forwards 0.25s; /* Trigger animation */
+
+  }
+
+  &:hover {
+    background-size: 100% 1rem;
   }
 }

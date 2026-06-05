@@ -1,5 +1,4 @@
 <script>
-  // Capture the children to render them
   let { children, ...rest } = $props();
 </script>
 

@@ -1,33 +1,49 @@
 <script>
-  import Icon from '@components/Icon.svelte';
-  
-  let { 
-    icon, 
-    iconSize = '1.25rem', 
-    label, 
-    tooltip, 
-    placement, 
-    children, 
-    ...rest 
+  import Icon from '@iconify/svelte';
+  import defaultIcon from '@icons/ph/smiley-duotone';
+
+  let {
+    icon = defaultIcon,
+    iconSize = '1.25rem',
+    width,
+    height,
+    size,
+    label,
+    tooltip,
+    placement,
+    children,
+    ...rest
   } = $props();
 
-  // If children are provided, use them as the label
   if (children) {
     label = children;
+  }
+
+  // Icons are supposed to be square
+  if (size) {
+    iconSize = size;
+  }
+  if (!width) {
+    width = iconSize;
+  }
+  if (!height) {
+    height = iconSize;
   }
 </script>
 
 <style>
-  /* Using component styles to style the Icon component directly */
   Icon {
-    margin-right: 0.25rem;
+    flex-shrink: 0;
   }
 
   span.wrapper {
     display: inline-flex;
     align-items: center;
-    
-    /* Nesting styles for better organization */
+
+    Icon {
+      margin-right: 0.25rem;
+    }
+
     > span {
       align-self: baseline;
     }
@@ -36,13 +52,13 @@
 
 {if label}
   {if icon}
-    <span class="wrapper" {...rest}>
-      <Icon {icon} size={iconSize} />
-      <span {tooltip} {placement}>{render label()}</span>
+    <span {...rest} class="wrapper {rest?.class}" {tooltip} {placement}>
+      <Icon {icon} {width} {height} />
+      <span>{render label()}</span>
     </span>
   {else}
     {render label()}
   {/if}
 {else}
-  <Icon {icon} size={iconSize} {tooltip} {placement} {...rest} />
+  <Icon {icon} {width} {height} {tooltip} {placement} {...rest} />
 {/if}

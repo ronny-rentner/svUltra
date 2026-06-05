@@ -1,190 +1,241 @@
 # Syntax Sugar Preprocessor
 
-## Overview
+Svelte templates accumulate small repetitions: a prop named on both sides of an `=`,
+stores that bind to elements but not components, ceremony around every block.
+The syntax sugar preprocessor allows to fold these into a compact, consistent shorthands
+and compiles it straight back to standard Svelte — so you write less without giving anything up.
 
-The Syntax Sugar preprocessor simplifies Svelte syntax for more concise templates. It lets you write Svelte code with less boilerplate, automatically converting your simplified syntax to standard Svelte syntax during preprocessing.
+Sensible defaults are built in, and you can add your own shortcuts or replace
+them entirely.
 
-## Common Replacements
+## Setup
 
-```javascript
-const replacements = [
-  // Multi-constant declaration
-  [/\{const\s+([^}]+)\s*}/g, (match, content) => 
-     content.trim().split(/,\s*/).map(_ => `\{@const ${_}\}`).join(' ')],
-  
-  // Store value shorthand for components
-  [/<([A-Za-z0-9]+)([^>]*?)\s\{\$([A-Za-z0-9_]+)\}([^>]*?)\/?>/g, '<$1$2 $3={$$$3}$4/>'],
-  
-  // Boolean attribute improvements
-  [/ disabled=\{([^}|]*?)\}/g, ' disabled={$1 || undefined}'],
-  ['{disabled}', 'disabled={disabled || undefined}'],
-  ['disabled=false', ''],
-  
-  // Block syntax
-  ['{const ',   '{@const '],
-  ['{snippet ', '{#snippet '],
-  ['{if ',      '{#if '],
-  ['{else}',    '{:else}'],
-  ['{else ',    '{:else '],
-  ['{elif ',    '{:else if '],
-  ['{elseif ',  '{:else if '],
-  ['{await ',   '{#await '],
-  ['{then ',    '{:then '],
-  ['{each ',    '{#each '],
-  ['{render ',  '{@render '],
-  ['{try}',     '{#try}'],
-  ['{catch ',   '{:catch '],
-
-  // Comment removal
-  [/\/\*[\s\S]*?\*\//gm, ''],
-  
-  // Media queries
-  ['@media mobile',  '@media (max-width: 768px)'],
-  ['@mobile',        '@media (max-width: 768px)'],
-  ['@media desktop', '@media (min-width: 769px)'],
-  ['@desktop',       '@media (min-width: 769px)'],
-  ['@media large',   '@media (min-width: 1536px)'],
-  ['@large',         '@media (min-width: 1536px)'],
-  
-  // Theme selectors
-  ['@dark',          ':root[data-theme="dark"]'],
-  ['@light',         ':root[data-theme="light"]'],
-];
-```
-
-## Event Handler Shorthand
-
-By naming your handler function to match the event (like `onclick`), you can use Svelte's property shorthand for events on both HTML elements and components:
-
-```svelte
-<script>
-  // Name the handler to match the event
-  function onclick(event) {
-    console.log('Button clicked!', event);
-  }
-</script>
-
-<!-- With HTML elements -->
-<button {onclick}>Click me</button>
-
-<!-- With components (doesn't work in standard Svelte) -->
-<CustomButton {onclick}>Click me</CustomButton>
-```
-
-This significantly reduces boilerplate for event handling and makes your components feel more like native HTML elements.
-
-## Store Value Shorthand for Components
-
-One key feature of svUltra is extending Svelte's HTML element shorthand syntax to work with components. This is a way to unify the treatment of HTML elements and Svelte components.
-
-In standard Svelte, you can use the `{prop}` shorthand with HTML elements, but the shorthand for store values (`{$store}`) doesn't work for components. With this preprocessor, it does:
-
-```svelte
-<!-- This syntax doesn't work in standard Svelte for components: -->
-<CustomComponent {$myStore} />
-
-<!-- But with svUltra, it transforms into: -->
-<CustomComponent myStore={$myStore} />
-```
-
-This makes templates more concise and consistent between HTML elements and components.
-
-## Block Syntax Simplification
-
-Removes the `#` and `:` prefixes required in standard Svelte:
-
-```svelte
-<!-- Simplified syntax -->
-{if condition}
-  <p>Content</p>
-{else}
-  <p>Alternative</p>
-{/if}
-
-<!-- Standard Svelte -->
-{#if condition}
-  <p>Content</p>
-{:else}
-  <p>Alternative</p>
-{/if}
-```
-
-## Multiple Constants Declaration
-
-Allows declaring multiple constants in a single line:
-
-```svelte
-<!-- Simplified syntax -->
-{const x = 1, y = 2, z = 3}
-
-<!-- Becomes -->
-{@const x = 1} {@const y = 2} {@const z = 3}
-```
-
-## Boolean Attribute Handling
-
-Improves the handling of boolean attributes:
-
-```svelte
-<!-- Simplified -->
-<button {disabled}>Click me</button>
-
-<!-- Becomes -->
-<button disabled={disabled || undefined}>Click me</button>
-```
-
-This ensures that when `disabled` is false, the attribute is completely removed rather than showing as `disabled="false"`.
-
-## Media Query and Theme Shortcuts
-
-Simplified media query and theme syntax:
-
-```svelte
-<style>
-  /* Simplified */
-  @mobile {
-    div { font-size: 14px; }
-  }
-  
-  @dark {
-    button { background: #333; }
-  }
-  
-  /* Becomes */
-  @media (max-width: 768px) {
-    div { font-size: 14px; }
-  }
-  
-  :root[data-theme="dark"] {
-    button { background: #333; }
-  }
-</style>
-```
-
-## Usage in Config
+Add it to your `svelte.config.js` as the **first** preprocessor in the chain:
 
 ```javascript
 import { syntaxSugar } from 'svUltra';
 
-// Define your replacements
-const replacements = [
-  ['{if ', '{#if '],
-  ['{else}', '{:else}'],
-  // ... add more replacements as needed
-];
-
 export default {
   preprocess: [
-    // Should be the first preprocessor
-    syntaxSugar(replacements),
-    // other preprocessors...
+    // Must run first: expands shorthands into valid Svelte before the
+    // other preprocessors and the compiler parse the file.
+    syntaxSugar(),        // built-in defaults, no config needed
+    // ...other preprocessors
   ],
 };
 ```
 
-## Notes
+That's it — every shorthand in the next section now works.
 
-- The syntax sugar preprocessor should typically be the first in your preprocessing chain
-- You can customize the replacements to match your preferences
-- Replacements are applied sequentially, so order matters
-- Both string replacements and regex replacements with callbacks are supported
+## What you get out of the box
+
+### Block syntax
+
+Write control-flow blocks without the `#`, `:`, and `@` prefixes Svelte
+requires:
+
+```svelte
+<!-- You write -->
+{if user}
+  <p>Hi {user.name}</p>
+{elif guest}
+  <p>Welcome</p>
+{else}
+  <p>Please log in</p>
+{/if}
+
+{each items as item}
+  <li>{item}</li>
+{/each}
+```
+
+```svelte
+<!-- becomes -->
+{#if user}
+  <p>Hi {user.name}</p>
+{:else if guest}
+  <p>Welcome</p>
+{:else}
+  <p>Please log in</p>
+{/if}
+
+{#each items as item}
+  <li>{item}</li>
+{/each}
+```
+
+The closing tags (`{/if}`, `{/each}`, …) are already prefix-free in Svelte, so
+they stay exactly as you write them.
+
+### Multiple constants in one tag
+
+Declare several `{@const}` values at once:
+
+```svelte
+{const x = 1, y = 2, z = 3}
+```
+
+```svelte
+<!-- becomes -->
+{@const x = 1} {@const y = 2} {@const z = 3}
+```
+
+### Store shorthand for components
+
+Svelte lets you write `{prop}` as shorthand for `prop={prop}` on elements, but
+the store form `{$store}` doesn't work on components. This preprocessor makes it
+work, unifying how you treat elements and components:
+
+```svelte
+<UserCard {$user} />
+```
+
+```svelte
+<!-- becomes -->
+<UserCard user={$user} />
+```
+
+### `bind:` and `style:` shorthands
+
+The same shorthand idea extended to directives:
+
+```svelte
+<Modal bind:{open} />
+<Box style:{color} />
+```
+
+```svelte
+<!-- becomes -->
+<Modal bind:open={open} />
+<Box style:color={color} />
+```
+
+### Default replacement reference
+
+| You write        | Expands to        |
+| ---------------- | ----------------- |
+| `{if cond}`      | `{#if cond}`      |
+| `{elif cond}`    | `{:else if cond}` |
+| `{elseif cond}`  | `{:else if cond}` |
+| `{else}`         | `{:else}`         |
+| `{else if cond}` | `{:else if cond}` |
+| `{each list}`    | `{#each list}`    |
+| `{await p}`      | `{#await p}`      |
+| `{then v}`       | `{:then v}`       |
+| `{catch e}`      | `{:catch e}`      |
+| `{try}`          | `{#try}`          |
+| `{snippet foo}`  | `{#snippet foo}`  |
+| `{render foo()}` | `{@render foo()}` |
+| `{html str}`     | `{@html str}`     |
+| `{const a, b}`   | `{@const a} {@const b}` |
+| `<C {$store} />` | `<C store={$store} />`  |
+| `<C bind:{v} />` | `<C bind:v={v} />`      |
+| `<C style:{c} />`| `<C style:c={c} />`     |
+
+## Adding your own shortcuts
+
+Pass an array of replacements to `syntaxSugar()`. They are appended **after**
+the defaults, so the built-ins still apply. Each entry is a
+`[search, replacement]` pair, where `search` is either a string (replaced
+everywhere) or a `RegExp`, and `replacement` is a string or a function — the
+same forms `String.prototype.replace` accepts.
+
+A common use is project-specific CSS conventions such as media-query
+breakpoints and theme selectors:
+
+```javascript
+const replacements = [
+  // Media-query breakpoints
+  ['@mobile',  '@media (max-width: 768px)'],
+  ['@desktop', '@media (min-width: 769px)'],
+
+  // Theme selectors
+  ['@dark',  ':root[data-theme="dark"]'],
+  ['@light', ':root[data-theme="light"]'],
+];
+
+syntaxSugar(replacements);   // defaults + your own
+```
+
+```svelte
+<style>
+  @mobile {
+    nav { display: none; }
+  }
+  @dark button {
+    background: #333;
+  }
+</style>
+```
+
+```css
+/* becomes */
+@media (max-width: 768px) {
+  nav { display: none; }
+}
+:root[data-theme="dark"] button {
+  background: #333;
+}
+```
+
+Replacements run in order, so a later entry can build on an earlier one (for
+example, expanding `{const}` first and then splitting comma-separated values).
+
+### Replacing the defaults entirely
+
+To run only your own list and skip the built-ins, set `useDefaults: false`:
+
+```javascript
+syntaxSugar(myReplacements, { useDefaults: false });
+```
+
+## Protecting code from transformation
+
+The shorthands are plain text substitutions, so now and then you'll have a block
+where the braces are meant to stay literal — a snippet of source you're showing
+your users, or any markup the preprocessor should leave alone.
+
+For that, wrap it in `<svultra:ignore>`. This tag is built in, and its contents
+are preserved exactly as written:
+
+```svelte
+<svultra:ignore>
+  {if user}Hi{/if}      <!-- left untouched, not expanded to {#if} -->
+</svultra:ignore>
+```
+
+If you have your own component that renders code — say a `<Snippet>` that shows
+example markup — register it through the `ignoreTags` option, a map of tag name
+→ behavior:
+
+```javascript
+syntaxSugar(replacements, {
+  ignoreTags: {
+    // Escape braces/tags to entities so the contents render as literal text
+    'Snippet':        { processTag: true,  escapeCurlyBraces: true },
+    // Leave the whole tag and its contents completely untouched
+    'svultra:ignore': { processTag: false, escapeCurlyBraces: true },
+  },
+});
+```
+
+- `escapeCurlyBraces: true` turns `{`, `}`, `<`, `>` inside the tag into HTML
+  entities, so the contents are shown verbatim instead of being compiled.
+- `processTag: false` preserves the entire tag and its contents unchanged —
+  this is what makes `<svultra:ignore>` a "do not touch" marker.
+- `processTag: true` keeps the tag in place but applies the escaping above to
+  its contents.
+
+Whatever you pass is merged on top of the built-in `svultra:ignore`. Tag names
+may contain only letters, digits, and colons.
+
+## Notes & gotchas
+
+- **Put it first.** Later preprocessors expect valid Svelte, so `syntaxSugar`
+  should lead the chain.
+- **Order matters.** Replacements are applied sequentially; defaults run before
+  the ones you add.
+- **Files under `node_modules` are skipped**, so dependencies are never
+  rewritten.
+- The transforms are plain string/regex substitutions, not a full parser. Keep
+  custom replacements specific to avoid matching unintended text.

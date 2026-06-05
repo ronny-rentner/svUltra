@@ -20,8 +20,13 @@ export function ripple(node) {
     rippleElement.className = 'ripple';
     rippleElement.style.cssText = rippleStyle;
     //TODO: Don't set inline styles
-    node.style.overflow = "hidden";
-    node.style.position = "relative";
+    // These guarantee ripple containment when the host doesn't already provide
+    // position+overflow in CSS. Disabled because as inline styles they win over
+    // consumer overrides like CodeExample's `Button { position: absolute }`. Re-
+    // enable selectively (e.g. only when the computed style isn't already set)
+    // if ripple containment breaks somewhere.
+    //node.style.overflow = "hidden";
+    //node.style.position = "relative";
     node.appendChild(rippleElement);
 
     requestAnimationFrame(() => {

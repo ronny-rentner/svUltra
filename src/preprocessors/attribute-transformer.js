@@ -26,9 +26,14 @@ function getAttributeValue(attr) {
  * @param {Array<string>} config.excludeTags - List of tags to exclude from transformation.
  * @returns {Object} - Preprocessor object with a 'markup' function.
  */
+const defaultAttributes = [
+  ['tooltip',   'data-tooltip'],
+  ['placement', 'data-placement'],
+];
+
 export default function attributeTransformer(config = {}) {
-  const attributePatterns = config.attributes || [];
-  const excludeTags = config.excludeTags || [];
+  const { useDefaults = true, attributes = [], excludeTags = [] } = config;
+  const attributePatterns = useDefaults ? [...defaultAttributes, ...attributes] : attributes;
 
   return {
     markup({ content, filename }) {
@@ -57,6 +62,7 @@ export default function attributeTransformer(config = {}) {
                   let transformedAttribute = null;
                   // Loop through each [pattern, replacement] pair
                   for (const [pattern, replacement] of attributePatterns) {
+                    if (typeof pattern === 'string' && attr.name !== pattern) continue;
                     const newAttrName = attr.name.replace(pattern, replacement);
                     if (newAttrName !== attr.name) {
                       log.debug('Tag: ', tagName, pattern, replacement, attr.name, newAttrName);
@@ -64,7 +70,7 @@ export default function attributeTransformer(config = {}) {
                       // Include replacement exactly as specified, with or without `=`
                       transformedAttribute = replacement.includes('=')
                         ? newAttrName
-                        : `${newAttrName}=${attrValue}`;
+                        : `${newAttrName}="${attrValue}"`;
                       break;
                     }
                   }

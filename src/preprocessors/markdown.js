@@ -2,14 +2,28 @@ import { readFile } from 'fs/promises';
 import { resolve, dirname, basename, extname } from 'path';
 import { marked, Marked } from 'marked';
 import MagicString from 'magic-string';
-import { parse } from 'svelte/compiler';
 import { createScopedLogger } from '../logger.js';
+import { dedent } from '../snippet.svelte.js';
 
 const log = createScopedLogger('markdown', 'info');
 
 const internalDomains = [];
 
+// Post-process marked's rendered code output to escape { and } — the two
+// characters Svelte's compiler treats as mustache delimiters. Without this,
+// braces appearing inside backtick code spans/blocks would be interpreted as
+// expressions by Svelte's parser instead of rendered as literal text.
+const braceEntity = { '{': '&lbrace;', '}': '&rbrace;' };
+const escapeBraces = (html) => html.replace(/[{}]/g, (c) => braceEntity[c]);
+
+// Instance of the default renderer so we can call its unmodified codespan and
+// code methods, then post-process their output to add brace escaping.
+const defaultRenderer = new marked.Renderer();
+
 const renderer = {
+  codespan: (token) => escapeBraces(defaultRenderer.codespan(token)),
+  code:     (token) => escapeBraces(defaultRenderer.code(token)),
+
   link({ href, title, text }) {
     let isInternal = false;
 
@@ -130,60 +144,77 @@ function applyReplacement(markdownContent, patternWithFlags, replacement) {
   }
 }
 
+// Extract name="value" pairs from a string of HTML-style attributes. Only
+// handles double-quoted values, which is what the <markdown> tag uses
+// (file="…", mode="…", pattern="…", replacement="…").
+function parseAttrs(s) {
+  const attrs = {};
+  const re = /(\w+)\s*=\s*"([^"]*)"/g;
+  let m;
+  while ((m = re.exec(s)) !== null) {
+    attrs[m[1]] = m[2];
+  }
+  return attrs;
+}
+
+// Matches <markdown ...>body</markdown> (body group captured) and
+// self-closing <markdown ... /> (body group undefined).
+const tagRegex = /<markdown((?:\s+[^>]*?)?)(?:\s*\/>|>([\s\S]*?)<\/markdown>)/g;
+
 /**
  * Svelte preprocessor that looks for <markdown> tags, reads the associated
- * markdown file, applies regex replacements (if any), replaces the tag with compiled HTML,
- * and generates a source map. If no file attribute is provided, it uses the current file's basename with .md extension.
+ * markdown file or renders the inline body, replaces the tag with compiled HTML,
+ * and generates a source map. If no file attribute is provided and the tag has
+ * no body, it uses the current file's basename with .md extension.
  */
-async function processMarkdownTags(node, magicString, filename, rootPath, deps) {
-  if (node.type === 'Element' && node.name === 'markdown') {
+async function processMarkdownTags(content, magicString, filename, rootPath, deps) {
+  for (const match of content.matchAll(tagRegex)) {
+    const [fullMatch, attrsStr, body] = match;
+    const attrs = parseAttrs(attrsStr ?? '');
     log.debug('Found markdown tag', filename);
 
-    const fileAttr = node.attributes.find(attr => attr.name === 'file');
-    const modeAttr = node.attributes.find(attr => attr.name === 'mode');
-    const patternAttr = node.attributes.find(attr => attr.name === 'pattern');
-    const replacementAttr = node.attributes.find(attr => attr.name === 'replacement');
-    let filePath;
+    let htmlContent;
 
-    if (fileAttr && fileAttr.value.length) {
-      // If the file attribute is provided, use it
-      filePath = fileAttr.value[0].data;
+    // Body mode: <markdown>…inline source…</markdown>
+    if (body !== undefined && !attrs.file) {
+      const bodyText = dedent(body);
+      htmlContent = renderMarkdown(bodyText, attrs.mode === 'faq');
+      log.debug('Replaced inline markdown body');
     } else {
-      // If no file attribute is provided, use the current file's basename with .md extension
-      const baseName = basename(filename, extname(filename));
-      filePath = `${baseName}.md`;
-      log.debug(`No file attribute given, using default file '${filePath}'`);
-    }
+      let filePath;
 
-    const resolvedFilePath = resolve(rootPath || dirname(filename), filePath);
-    log.debug('Processing markdown file', resolvedFilePath);
-    deps.push(resolvedFilePath); 
-
-    try {
-      let markdownContent = await readFile(resolvedFilePath, 'utf-8');
-      let htmlContent = renderMarkdown(markdownContent, modeAttr?.value[0]?.data == 'faq');
-
-      // Apply regex replacement if 'pattern' and 'replacement' attributes are present
-      if (patternAttr && replacementAttr) {
-        const pattern = patternAttr.value[0].data;
-        const replacement = replacementAttr.value[0].data;
-        log.debug(`Applying regex replacement: ${pattern} -> ${replacement}`);
-        htmlContent = applyReplacement(htmlContent, pattern, replacement);
+      if (attrs.file) {
+        // If the file attribute is provided, use it
+        filePath = attrs.file;
+      } else {
+        // If no file attribute is provided, use the current file's basename with .md extension
+        const baseName = basename(filename, extname(filename));
+        filePath = `${baseName}.md`;
+        log.debug(`No file attribute given, using default file '${filePath}'`);
       }
 
+      const resolvedFilePath = resolve(rootPath || dirname(filename), filePath);
+      log.debug('Processing markdown file', resolvedFilePath);
+      deps.push(resolvedFilePath);
 
+      try {
+        const markdownContent = await readFile(resolvedFilePath, 'utf-8');
+        htmlContent = renderMarkdown(markdownContent, attrs.mode === 'faq');
 
-      magicString.overwrite(node.start, node.end, htmlContent);
-      log.debug('Replaced markdown tag with HTML', resolvedFilePath);
-    } catch (err) {
-      log.error(`Error processing markdown file: ${resolvedFilePath}`, err);
+        // Apply regex replacement if 'pattern' and 'replacement' attributes are present
+        if (attrs.pattern && attrs.replacement) {
+          log.debug(`Applying regex replacement: ${attrs.pattern} -> ${attrs.replacement}`);
+          htmlContent = applyReplacement(htmlContent, attrs.pattern, attrs.replacement);
+        }
+
+        log.debug('Replaced markdown tag with HTML', resolvedFilePath);
+      } catch (err) {
+        log.error(`Error processing markdown file: ${resolvedFilePath}`, err);
+        continue;
+      }
     }
-  }
 
-  if (node.children && node.children.length) {
-    for (const child of node.children) {
-      await processMarkdownTags(child, magicString, filename, rootPath, deps);
-    }
+    magicString.overwrite(match.index, match.index + fullMatch.length, htmlContent);
   }
 }
 
@@ -198,14 +229,13 @@ function markdownPreprocessor(options = {}) {
       }
 
       log.debug('Processing file', filename);
-      const ast = parse(content);
       const magicString = new MagicString(content);
-      const deps = []; 
+      const deps = [];
 
-      await processMarkdownTags(ast.html, magicString, filename, rootPath, deps);
+      await processMarkdownTags(content, magicString, filename, rootPath, deps);
 
       log.debug('Finished processing file', filename);
-      return { 
+      return {
         code: magicString.toString(),
         map:  magicString.generateMap({ source: filename, includeContent: true }),
         dependencies: deps

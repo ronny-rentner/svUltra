@@ -8,16 +8,21 @@ import { parse } from 'svelte/compiler';
 import { walk } from 'estree-walker';
 import MagicString from 'magic-string';
 import postcss from 'postcss';
-import crypto from 'crypto';
 
 import selectorParser from 'postcss-selector-parser';
 
 import { createScopedLogger } from '../logger.js';
 const log = createScopedLogger('component-styles', 'info');
 
-// Utility function to hash a string
+// 8-char FNV-1a hash — deterministic, dependency-free, runs in Node and the
+// browser. Only needs to be stable per file, not cryptographically strong.
 function hashString(str) {
-  return crypto.createHash('md5').update(str).digest('hex').substring(0, 8);
+  let h = 0x811c9dc5;
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 0x01000193);
+  }
+  return (h >>> 0).toString(16).padStart(8, '0');
 }
 
 // Map to store detailed component information
@@ -105,7 +110,10 @@ function processMatchedSelector2(tagSelector, selector, rule, filename) {
 
   processNestedRules(rule);
 
-  return `.${componentName}-${hash}`;
+  // Repeat the class to bump specificity from (0,1,0) to (0,2,0), so consumer
+  // styles like `Button { position: absolute }` outrank the component's own
+  // internal `button.s-XYZ { position: relative }` (specificity 0,1,1).
+  return `.${componentName}-${hash}.${componentName}-${hash}`;
 }
 
 const processSelectors = (selectors, rule, filename) => {

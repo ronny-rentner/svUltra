@@ -1,49 +1,19 @@
-import chalk from 'chalk';
 import log from 'loglevel';
-import path from 'path';
 
-// Helper to create the custom log method
-const loglevelPlugin = (originalFactory, logLevelThreshold, loggerName) => {
-  const cwd = process.cwd();
+// Are we under Node, or in a browser? The colourful, file:line formatting below
+// is Node-only; in a browser we keep the logger dependency-free and let loglevel
+// write straight to the console.
+const isNode =
+  typeof process !== 'undefined' && !!process.versions && !!process.versions.node;
 
-  return function (methodName, logLevel, loggerInstanceName) {
-    const rawMethod = originalFactory(methodName, logLevel, loggerInstanceName || loggerName);
+// chalk reads `process` when it loads, so import it lazily and only under Node —
+// a browser bundle then never evaluates it. Until it resolves (or in the
+// browser) `chalk` stays null and formatPrefix falls back to plain text.
+let chalk = null;
+if (isNode) {
+  import('chalk').then((m) => { chalk = m.default; }).catch(() => {});
+}
 
-    return function (...args) {
-      // Only log if the level is below or equal to the logger's threshold
-      if (log.levels[methodName.toUpperCase()] > logLevelThreshold[methodName]) {
-        return;
-      }
-
-      if (loggerName == loggerInstanceName) {
-
-        // Construct the log message
-        const timestamp = chalk.gray(new Date().toISOString());
-        const level = chalk.gray.bold(`<${methodName}>`);
-
-        // Get the user code stack line (3rd line)
-        const stackLines = new Error().stack.split("\n");
-        const source = stackLines[2].trim();
-
-        const match = source.match(/file:\/\/(.*?):(\d+):(\d+)\)?$/);
-        let relativePath = chalk.cyan(source);
-        if (match) {
-          const [_, fullPath, line, column] = match;
-          const relativeFilePath = path.relative(cwd, fullPath);
-          relativePath = chalk.cyan(`${relativeFilePath}:${line}:${column}`);
-        }
-
-        const name = chalk.gray(`[${loggerInstanceName || 'default'}]`);
-
-        // Log message formatting
-        args[0] = `${timestamp} ${level} ${name} ${relativePath}\n${args[0]}`;
-      }
-      return rawMethod.apply(this, args);
-    };
-  };
-};
-
-// Define log level thresholds
 const logLevelThreshold = {
   trace: log.levels.TRACE,
   debug: log.levels.DEBUG,
@@ -52,15 +22,58 @@ const logLevelThreshold = {
   error: log.levels.ERROR,
 };
 
-// Configure a logger (default or scoped)
+// The one place a log line's prefix is built. Rich (timestamp + colour +
+// file:line) under Node; plain `<level> [scope]` everywhere else, so the same
+// logger works in the browser console.
+const formatPrefix = (methodName, loggerName) => {
+  const tag = `<${methodName}>`;
+  const name = `[${loggerName || 'default'}]`;
+
+  if (!isNode || !chalk) {
+    return `${tag} ${name}`;
+  }
+
+  const timestamp = chalk.gray(new Date().toISOString());
+  const level = chalk.gray.bold(tag);
+
+  // The caller's file:line, pulled from the stack and made relative to cwd.
+  let location = '';
+  const source = (new Error().stack || '').split('\n')[3]?.trim() ?? '';
+  const match = source.match(/file:\/\/(.*?):(\d+):(\d+)\)?$/);
+  if (match) {
+    const [, fullPath, line, column] = match;
+    const cwd = process.cwd();
+    const rel = fullPath.startsWith(cwd) ? fullPath.slice(cwd.length + 1) : fullPath;
+    location = chalk.cyan(`${rel}:${line}:${column}`);
+  } else if (source) {
+    location = chalk.cyan(source);
+  }
+
+  return `${timestamp} ${level} ${chalk.gray(name)} ${location}`.trimEnd();
+};
+
+// loglevel method factory that prepends our prefix to scoped log calls.
+const makeMethodFactory = (originalFactory, loggerName) =>
+  function (methodName, logLevel, loggerInstanceName) {
+    const rawMethod = originalFactory(methodName, logLevel, loggerInstanceName || loggerName);
+
+    return function (...args) {
+      if (log.levels[methodName.toUpperCase()] > logLevelThreshold[methodName]) {
+        return;
+      }
+
+      if (loggerName === loggerInstanceName) {
+        args[0] = `${formatPrefix(methodName, loggerInstanceName)}\n${args[0]}`;
+      }
+
+      return rawMethod.apply(this, args);
+    };
+  };
+
+// Configure a logger (default or scoped) with our method factory and level.
 const configureLogger = (logger, logLevel = 'debug', loggerName) => {
-  // Save the original method factory
   const originalFactory = logger.methodFactory;
-
-  // Override the method factory with the plugin
-  logger.methodFactory = loglevelPlugin(originalFactory, logLevelThreshold, loggerName);
-
-  // Set the desired log level
+  logger.methodFactory = makeMethodFactory(originalFactory, loggerName);
   logger.setLevel(logLevel);
 };
 
@@ -79,7 +92,7 @@ const sendLogToBackend = (level, message, error) => {
 const originalError = log.error;
 log.error = (...args) => {
   originalError.apply(log, args);
-  if (process.env.NODE_ENV === 'production') {
+  if (typeof process !== 'undefined' && process.env && process.env.NODE_ENV === 'production') {
     sendLogToBackend('error', args[0], args[1]);
   }
 };
@@ -103,4 +116,3 @@ export default log;
 
 // Export the scoped logger creator for module-specific logging
 export { createScopedLogger };
-
