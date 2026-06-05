@@ -1,8 +1,8 @@
 <script>
   import { fade } from 'svelte/transition';
-  import { Icon } from '@components';
+  import Icon from './IconWithLabel.svelte';
 
-  import icon from '@icons/ph/arrow-clockwise-duotone';
+  import icon from '../icons/spinner.js';
 
   let { loading = true, size = '1.25rem', ...rest } = $props();
 </script>

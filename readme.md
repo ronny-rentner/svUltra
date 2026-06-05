@@ -221,6 +221,34 @@ Here's an example component using svUltra features:
 {/if}
 ```
 
+## Using the kit
+
+svUltra ships a small set of Svelte 5 components, an action, and the icons
+they use under `svultra/kit/*`:
+
+```js
+import { Button, Card, IconWithLabel } from 'svultra/kit/components';
+import { ripple }                       from 'svultra/kit/actions';
+import { smiley, spinner }              from 'svultra/kit/icons';
+```
+
+Kit components use svUltra's component-styles syntax internally
+(`<style> Button { ... } </style>`), so your `svelte.config.js` must include
+at least `transformComponentStyles`:
+
+```js
+import { transformComponentStyles } from 'svultra';
+
+export default {
+  preprocess: [ transformComponentStyles() ],
+};
+```
+
+`@iconify/svelte` is an optional peer — install it if you use any of
+`Button`, `IconWithLabel`, or `LoadingIndicator`. The two icons exported
+from `svultra/kit/icons` are vendored; no `@iconify-icons/*` install is
+needed for the defaults. Pass your own Iconify icons via the `icon` prop.
+
 ## License
 
 ISC

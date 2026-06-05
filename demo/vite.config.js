@@ -55,10 +55,6 @@ export default defineConfig(({ command }) => ({
       '@icons':      '@iconify-icons',
       '@lib':        path.resolve(__dirname, 'src/lib'),
       '@styles':     path.resolve(__dirname, 'src/styles'),
-      // Demo-only alias: the demo lives in the same repo as the library, so it
-      // imports from svUltra's source. In a real project, don't add this line
-      // to your config — you can import directly `from 'svUltra'`.
-      '@svUltra':    path.resolve(__dirname, '..', 'src'),
     },
   },
   build: {

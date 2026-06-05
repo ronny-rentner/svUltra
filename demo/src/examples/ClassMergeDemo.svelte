@@ -1,5 +1,5 @@
 <script>
-  import { Button } from '@components';
+  import { Button } from 'svultra/kit/components';
 
   const shared = { class: 'outline', type: 'button' };
   let busy = $state(false);

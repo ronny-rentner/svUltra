@@ -1,8 +1,7 @@
 <svelte:options preserveWhitespace />
 
 <script>
-  import Button from '@components/Button.svelte';
-  import Card from '@components/Card.svelte';
+  import { Button, Card } from 'svultra/kit/components';
   import CodeComparison2 from '@components/CodeComparison2.svelte';
   import CodeExample from '@components/CodeExample.svelte';
   import CodeSource from '@components/CodeExample.svelte';
@@ -16,13 +15,13 @@
   import SyntaxSugarDemo                  from './examples/SyntaxSugarDemo.svelte';
   import syntaxSugarSource                from './examples/SyntaxSugarDemo.svelte?raw';
   import syntaxSugarPreprocessed          from './examples/SyntaxSugarDemo.svelte?preprocessed';
-  import attributeTransformerSource       from '@components/Button.svelte?raw';
-  import attributeTransformerPreprocessed from '@components/Button.svelte?preprocessed';
+  import attributeTransformerSource       from '../../src/kit/components/Button.svelte?raw';
+  import attributeTransformerPreprocessed from '../../src/kit/components/Button.svelte?preprocessed';
   import componentStylesSource            from '@components/ReleasePanel.svelte?raw';
   import componentStylesPlain             from '@components/ReleasePanelPlain.svelte?raw';
-  import cardSource                       from '@components/Card.svelte?raw';
-  import iconWithLabelSource              from '@components/IconWithLabel.svelte?raw';
-  import buttonSource                     from '@components/Button.svelte?raw';
+  import cardSource                       from '../../src/kit/components/Card.svelte?raw';
+  import iconWithLabelSource              from '../../src/kit/components/IconWithLabel.svelte?raw';
+  import buttonSource                     from '../../src/kit/components/Button.svelte?raw';
   import ClassMergeDemo                   from './examples/ClassMergeDemo.svelte';
   import classMergeSource                 from './examples/ClassMergeDemo.svelte?raw';
   import classMergePreprocessed           from './examples/ClassMergeDemo.svelte?preprocessed';
@@ -71,24 +70,24 @@
   }
 </style>
 
-<header class="site-header">
-  <nav class="container">
-    <ul>
-      <li><strong><a href="#top">svUltra</a></strong></li>
-    </ul>
-
-    <ul>
-      <li><a href="#component-styles">Component Styles</a></li>
-      <li><a href="#class-merge">Class Merge</a></li>
-      <li><a href="#syntax-sugar">Syntax Sugar</a></li>
-      <li><a href="#attribute-transformer">Attribute Transformer</a></li>
-      <li><a href="#markdown">Markdown</a></li>
-      <li><ToggleDarkMode /></li>
-    </ul>
-  </nav>
-</header>
-
 <main class="container" id="top">
+  <header>
+    <nav>
+      <ul>
+        <li><strong><a href="#top">svUltra</a></strong></li>
+      </ul>
+
+      <ul>
+        <li><a href="#component-styles">Component Styles</a></li>
+        <li><a href="#class-merge">Class Merge</a></li>
+        <li><a href="#syntax-sugar">Syntax Sugar</a></li>
+        <li><a href="#attribute-transformer">Attribute Transformer</a></li>
+        <li><a href="#markdown">Markdown</a></li>
+        <li><ToggleDarkMode /></li>
+      </ul>
+    </nav>
+  </header>
+
   <section>
     <h1>Build Svelte apps with less ceremony.</h1>
     <p>

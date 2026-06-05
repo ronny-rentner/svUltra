@@ -1,6 +1,6 @@
 <script>
   import { writable } from 'svelte/store';
-  import { Button, Card } from '@components';
+  import { Button, Card } from 'svultra/kit/components';
 
   let { color = 'var(--pico-primary)', placeholder = 'Add a to-do…' } = $props();
 

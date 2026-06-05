@@ -1,7 +1,5 @@
 <script>
-  import Button from '@components/Button.svelte';
-  import Card from '@components/Card.svelte';
-  import IconWithLabel from '@components/IconWithLabel.svelte';
+  import { Button, Card, IconWithLabel } from 'svultra/kit/components';
   import sparklesIcon from '@icons/ph/sparkle-duotone';
   import rocketIcon from '@icons/ph/rocket-launch-duotone';
   import trashIcon from '@icons/ph/trash-duotone';

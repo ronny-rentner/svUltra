@@ -1,6 +1,6 @@
 <script>
   import Icon from '@iconify/svelte';
-  import defaultIcon from '@icons/ph/smiley-duotone';
+  import defaultIcon from '../icons/smiley.js';
 
   let {
     icon = defaultIcon,

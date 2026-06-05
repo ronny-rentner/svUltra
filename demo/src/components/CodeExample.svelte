@@ -1,6 +1,6 @@
 <script>
-  import { Button, Card } from '@components';
-  import { snippetToHtml, dedent } from 'svUltra/snippet';
+  import { Button, Card } from 'svultra/kit/components';
+  import { snippetToHtml, dedent } from 'svultra/snippet';
 
   let { highlight, children, expanded = $bindable(false), ...rest } = $props();
 

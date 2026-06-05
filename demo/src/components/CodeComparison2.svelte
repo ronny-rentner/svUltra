@@ -1,7 +1,8 @@
 <script>
   import { writable } from 'svelte/store';
 
-  import { Button, CodeSource, IconWithLabel } from '@components';
+  import { Button, IconWithLabel } from 'svultra/kit/components';
+  import { CodeSource } from '@components';
   import oneIcon from '@icons/ph/number-circle-one-fill';
   import twoIcon from '@icons/ph/number-circle-two-fill';
 

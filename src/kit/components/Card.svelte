@@ -1,5 +1,5 @@
 <script>
-  import LoadingIndicator from '@components/LoadingIndicator.svelte';
+  import LoadingIndicator from './LoadingIndicator.svelte';
 
   let { header, title, loading = false, tooltip, placement, children, ...rest } = $props();
 </script>

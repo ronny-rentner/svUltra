@@ -1,0 +1,8 @@
+{
+  "name": "svultra-demo",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "svultra": "file:.."
+  }
+}

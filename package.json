@@ -1,13 +1,17 @@
 {
-  "name": "svUltra",
+  "name": "svultra",
   "version": "0.0.1-alpha",
   "description": "Svelte 5 preprocessors for consistent component styling and syntax sugar",
   "type": "module",
   "main": "index.js",
   "exports": {
-    ".": "./index.js",
-    "./snippet": "./src/snippet.svelte.js"
+    ".":                "./index.js",
+    "./snippet":        "./src/snippet.svelte.js",
+    "./kit/actions":    "./src/kit/actions/index.js",
+    "./kit/components": "./src/kit/components/index.js",
+    "./kit/icons":      "./src/kit/icons/index.js"
   },
+  "workspaces": ["demo"],
   "files": [
     "index.js",
     "src"
@@ -31,7 +35,11 @@
   "author": "",
   "license": "ISC",
   "peerDependencies": {
-    "svelte": "*"
+    "svelte": "*",
+    "@iconify/svelte": "*"
+  },
+  "peerDependenciesMeta": {
+    "@iconify/svelte": { "optional": true }
   },
   "dependencies": {
     "chalk": "*",

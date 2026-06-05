@@ -1,6 +1,5 @@
 <script>
-  import Button from '@components/Button.svelte';
-  import Icon from '@components/IconWithLabel.svelte';
+  import { Button, Icon } from 'svultra/kit/components';
   import sunIcon from '@icons/ph/sun-duotone';
   import moonIcon from '@icons/ph/moon-duotone';
 
