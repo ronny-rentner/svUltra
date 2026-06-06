@@ -9,7 +9,8 @@
     "./snippet":        "./src/snippet.svelte.js",
     "./kit/actions":    "./src/kit/actions/index.js",
     "./kit/components": "./src/kit/components/index.js",
-    "./kit/icons":      "./src/kit/icons/index.js"
+    "./kit/icons":      "./src/kit/icons/index.js",
+    "./kit/router":     "./src/kit/router/index.js"
   },
   "workspaces": ["demo"],
   "files": [

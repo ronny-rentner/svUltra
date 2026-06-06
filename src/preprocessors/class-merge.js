@@ -50,6 +50,10 @@ function findTagClosingPosition(node, content) {
   return closingBracketPos;
 }
 
+// TODO: extend the walker below to handle Element nodes (plain HTML tags), not
+// just InlineComponent. Currently a static `class="..."` plus `{...rest}` on
+// e.g. <main> or <span> loses the static class to spread; callers work around
+// this with `class:foo={1}` directive hacks (see kit/components/Main.svelte).
 export default function classMergePreprocessor() {
   return {
     markup({ content, filename }) {
