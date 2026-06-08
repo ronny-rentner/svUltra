@@ -1,5 +1,5 @@
 <script>
-  import { ripple } from '../actions/ripple.js';
+  import { ripple } from '#kit/actions/ripple.js';
   import IconWithLabel from './IconWithLabel.svelte';
 
   let { icon, iconSize = '1.25rem', tooltip, placement, children, ...rest } = $props();

@@ -229,7 +229,7 @@ they use under `svultra/kit/*`:
 ```js
 import { Button, Card, IconWithLabel } from 'svultra/kit/components';
 import { ripple }                       from 'svultra/kit/actions';
-import { smiley, spinner }              from 'svultra/kit/icons';
+import { smiley, spinner }              from 'svultra/kit/assets/icons';
 ```
 
 Kit components use svUltra's component-styles syntax internally
@@ -245,9 +245,67 @@ export default {
 ```
 
 `@iconify/svelte` is an optional peer — install it if you use any of
-`Button`, `IconWithLabel`, or `LoadingIndicator`. The two icons exported
-from `svultra/kit/icons` are vendored; no `@iconify-icons/*` install is
-needed for the defaults. Pass your own Iconify icons via the `icon` prop.
+`Button`, `IconWithLabel`, or `LoadingIndicator`. The icons exported
+from `svultra/kit/assets/icons` are vendored; no `@iconify-icons/*` install
+is needed for the defaults. Pass your own Iconify icons via the `icon` prop.
+
+## Import shapes
+
+svUltra ships two kinds of public entry: **barrels** (paths that end at a
+namespace, like `svultra/kit/components`) and **specific items** (paths
+that name a file or module, like `svultra/kit/components/Layout.svelte`).
+
+**When to use which.** Barrels expose a curated set of *common primitives*
+that are typically reached by name from many places — `Button`, `Card`,
+`Icon`, `Link`, `LoadingIndicator` and friends. Use the barrel when you
+want one or more of those primitives by name: `import { Button, Card }
+from 'svultra/kit/components'`. The barrel keeps the common case
+ergonomic, lets you group several related imports on one line, and
+tree-shakes cleanly (unused names are dropped by the bundler).
+
+Use a **specific-item path** when the thing isn't in the barrel — that's
+the case for everything else: layout shells (`Layout`), per-app stubs
+(`LoginForm`, `ContactForm`), single-use widgets (`ToggleDarkMode`,
+`Toasts`, `LoadingOverlay`), and assets (`logo.svg`). These items aren't
+in the barrel deliberately: they're either less commonly imported, or
+they ship default + named exports together (a single `import Toaster, {
+toastSuccess }` reads better than two lines from a barrel).
+
+The rule of thumb: **try the barrel first; if the name isn't there, use
+the file path**. The barrel is what you'll usually want; file paths
+expose everything else without bloating it.
+
+**Import-shape rule** follows the entry type:
+
+```js
+// Barrel — named imports
+import { syntaxSugar, transformComponentStyles } from 'svultra';
+import { Button, Card, Icon, Link }              from 'svultra/kit/components';
+import { ripple, accordion }                     from 'svultra/kit/actions';
+import { smiley, spinner, sun, moon }            from 'svultra/kit/assets/icons';
+import { Router, navigate, currentPath }         from 'svultra/kit/router';
+
+// Single component file — default import
+import Layout    from 'svultra/kit/components/Layout.svelte';
+import LoginForm from 'svultra/kit/components/LoginForm.svelte';
+import Menu      from 'svultra/kit/components/layout/Menu.svelte';
+
+// Component file that also exports named helpers — mixed
+import Toaster, { toastSuccess, toastWarning } from 'svultra/kit/components/Toasts.svelte';
+
+// Single-file utility module — named imports
+import { configStore, personStore } from 'svultra/kit/stores';
+import { signOut }                  from 'svultra/kit/api';
+import { snippetToHtml, dedent }    from 'svultra/snippet';
+
+// Asset path — default import
+import logo from 'svultra/kit/assets/logo.svg';
+```
+
+The rule, stated without referring to file extensions: when the import
+path ends *at a namespace* (barrel), use named imports; when it ends *at
+a specific item* (a component file or an asset file), use a default
+import for the item, plus any named helpers the item ships alongside.
 
 ## License
 

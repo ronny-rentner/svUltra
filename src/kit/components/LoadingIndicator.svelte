@@ -2,7 +2,7 @@
   import { fade } from 'svelte/transition';
   import Icon from './IconWithLabel.svelte';
 
-  import icon from '../icons/spinner.js';
+  import icon from '#kit/assets/icons/spinner.js';
 
   let { loading = true, size = '1.25rem', ...rest } = $props();
 </script>

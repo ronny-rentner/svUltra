@@ -4,13 +4,20 @@
   "description": "Svelte 5 preprocessors for consistent component styling and syntax sugar",
   "type": "module",
   "main": "index.js",
+  "imports": {
+    "#kit/*": "./src/kit/*"
+  },
   "exports": {
-    ".":                "./index.js",
-    "./snippet":        "./src/snippet.svelte.js",
-    "./kit/actions":    "./src/kit/actions/index.js",
-    "./kit/components": "./src/kit/components/index.js",
-    "./kit/icons":      "./src/kit/icons/index.js",
-    "./kit/router":     "./src/kit/router/index.js"
+    ".":                  "./index.js",
+    "./snippet":          "./src/snippet.svelte.js",
+    "./kit/actions":      "./src/kit/actions/index.js",
+    "./kit/components":   "./src/kit/components/index.js",
+    "./kit/components/*": "./src/kit/components/*",
+    "./kit/assets/icons": "./src/kit/assets/icons/index.js",
+    "./kit/assets/*":     "./src/kit/assets/*",
+    "./kit/stores":       "./src/kit/stores.js",
+    "./kit/api":          "./src/kit/api.js",
+    "./kit/router":       "./src/kit/router/index.js"
   },
   "workspaces": ["demo"],
   "files": [
@@ -37,10 +44,14 @@
   "license": "ISC",
   "peerDependencies": {
     "svelte": "*",
-    "@iconify/svelte": "*"
+    "@iconify/svelte": "*",
+    "trap-focus-svelte": "*",
+    "@zerodevx/svelte-toast": "*"
   },
   "peerDependenciesMeta": {
-    "@iconify/svelte": { "optional": true }
+    "@iconify/svelte": { "optional": true },
+    "trap-focus-svelte": { "optional": true },
+    "@zerodevx/svelte-toast": { "optional": true }
   },
   "dependencies": {
     "chalk": "*",
@@ -58,6 +69,7 @@
     "@iconify/svelte": "*",
     "@sveltejs/vite-plugin-svelte": "*",
     "chokidar": "*",
+    "postcss-nested": "*",
     "svelte": "*",
     "svelte-preprocess": "*",
     "vite": "*"

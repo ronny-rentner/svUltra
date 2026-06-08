@@ -161,7 +161,7 @@
 <script>
   import { onMount, onDestroy } from 'svelte';
 
-  import LoadingOverlay from '../components/LoadingOverlay.svelte';
+  import LoadingOverlay from '#kit/components/LoadingOverlay.svelte';
 
   const { routes: _routes , Layout } = $props();
   routes = _routes;
