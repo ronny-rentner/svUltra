@@ -87,12 +87,15 @@ Transform attributes to different formats:
 
 ### 4. Syntax Sugar
 
-Simplifies Svelte template syntax with concise shorthand patterns:
+Simplifies Svelte template syntax with concise shorthand patterns, and
+compiles Svelte 4 `slot="…"`/`let:` markup to Svelte 5 snippets:
 
 ```svelte
 <!-- Simplified syntax -->
 {if condition}
-  <Component {$store}>Content</Component>
+  <Component {$store}>
+    <h2 slot="header">Title</h2>
+  </Component>
 {else}
   <div tooltip="Help text">Other content</div>
 {/if}

@@ -110,6 +110,50 @@ The same shorthand idea extended to directives:
 <Box style:color={color} />
 ```
 
+### Svelte 4 slots and `let:` props
+
+Svelte 5 replaces named slots and slot props with snippets. The preprocessor
+accepts the Svelte 4 surface and compiles it to the snippet form, so the
+terser slot markup keeps working:
+
+```svelte
+<Card>
+  <h2 slot="header">Title</h2>
+</Card>
+
+<MediaQuery query="(max-width: 768px)" let:matches>
+  {if matches}<MobileMenu />{/if}
+</MediaQuery>
+```
+
+```svelte
+<!-- becomes -->
+<Card>
+  {#snippet header()}<h2>Title</h2>{/snippet}
+</Card>
+
+<MediaQuery query="(max-width: 768px)">
+  {#snippet children(matches)}
+    {#if matches}<MobileMenu />{/if}
+  {/snippet}
+</MediaQuery>
+```
+
+- Works on any tag: components, plain elements, and `<svelte:fragment>`
+  (the fragment exists only to carry `slot=`, so its wrapper tags are
+  dropped).
+- `slot=` and `let:` combine — `<div slot="item" let:thing>` becomes
+  `{#snippet item(thing)}<div>…`.
+- Multiple `let:` props become snippet parameters in order of appearance.
+  That mapping is positional, unlike Svelte 4's named slot props, so the
+  component must render its snippet with the parameters in that order.
+- `let:name={alias}` passes the alias pattern through as the parameter.
+
+Unlike the textual shorthands, this rewrite is AST-based: it runs after the
+string replacements (which by then have produced valid Svelte) and edits the
+parsed template, so nested same-name tags and `>` inside attribute
+expressions are handled correctly.
+
 ### Default replacement reference
 
 | You write        | Expands to        |
@@ -131,6 +175,8 @@ The same shorthand idea extended to directives:
 | `<C {$store} />` | `<C store={$store} />`  |
 | `<C bind:{v} />` | `<C bind:v={v} />`      |
 | `<C style:{c} />`| `<C style:c={c} />`     |
+| `<tag slot="x">…</tag>` | `{#snippet x()}<tag>…</tag>{/snippet}` |
+| `<C let:a>…</C>` | `<C>{#snippet children(a)}…{/snippet}</C>` |
 
 ## Adding your own shortcuts
 
@@ -236,6 +282,9 @@ may contain only letters, digits, and colons.
 - **Order matters.** Replacements are applied sequentially; defaults run before
   the ones you add.
 - **Files under `node_modules` are skipped**, so dependencies are never
-  rewritten.
-- The transforms are plain string/regex substitutions, not a full parser. Keep
-  custom replacements specific to avoid matching unintended text.
+  rewritten — except the installed `svultra` package itself, whose kit
+  components are written in the sugar.
+- The shorthand transforms are plain string/regex substitutions, not a full
+  parser. Keep custom replacements specific to avoid matching unintended
+  text. The slot/`let:` rewrite is the exception — it parses the template
+  and edits the AST.
