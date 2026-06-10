@@ -57,7 +57,7 @@ function findTagClosingPosition(node, content) {
 export default function classMergePreprocessor() {
   return {
     markup({ content, filename }) {
-      if (filename.includes('node_modules')) {
+      if (filename.includes('node_modules') && !filename.includes('node_modules/svultra/')) {
         //log.debug('Skipping vendor file:', filename);
         return;
       }

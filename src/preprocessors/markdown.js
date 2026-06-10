@@ -224,7 +224,7 @@ function markdownPreprocessor(options = {}) {
   return {
     name: 'markdown',
     async markup({ content, filename }) {
-      if (filename.includes('node_modules')) {
+      if (filename.includes('node_modules') && !filename.includes('node_modules/svultra/')) {
         return;
       }
 

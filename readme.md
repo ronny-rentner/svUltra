@@ -232,17 +232,25 @@ import { ripple }                       from 'svultra/kit/actions';
 import { smiley, spinner }              from 'svultra/kit/assets/icons';
 ```
 
-Kit components use svUltra's component-styles syntax internally
-(`<style> Button { ... } </style>`), so your `svelte.config.js` must include
-at least `transformComponentStyles`:
+Kit components are written in the svUltra dialect (`{if}` shorthand,
+`tooltip` attributes, `<style> Button { ... } </style>`, `let:` snippet
+sugar), so your `svelte.config.js` needs the full preprocessor chain in its
+required order. The `svultraPreprocess` preset sets it up in one line:
 
 ```js
-import { transformComponentStyles } from 'svultra';
+import { svultraPreprocess } from 'svultra';
 
 export default {
-  preprocess: [ transformComponentStyles() ],
+  preprocess: svultraPreprocess(),
 };
 ```
+
+It accepts `replacements` and `ignoreTags` (passed to `syntaxSugar`),
+`attributes` (extra `attributeTransformer` pairs), and `markdown`
+(`markdownPreprocessor` options; the preprocessor is only added when set).
+The preprocessors skip `node_modules` except the installed `svultra`
+package itself, so the kit components compile in your app like your own
+sources do.
 
 `@iconify/svelte` is an optional peer — install it if you use any of
 `Button`, `IconWithLabel`, or `LoadingIndicator`. The icons exported

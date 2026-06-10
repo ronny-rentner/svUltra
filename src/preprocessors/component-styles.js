@@ -358,7 +358,7 @@ async function processFile({ html, css, js, filename, originalContent }) {
 function transformComponentStyles() {
   return {
     markup({ content, filename }) {
-      if (filename.includes('node_modules')) {
+      if (filename.includes('node_modules') && !filename.includes('node_modules/svultra/')) {
         return;
       }
 

@@ -37,7 +37,7 @@ export default function attributeTransformer(config = {}) {
 
   return {
     markup({ content, filename }) {
-      if (filename && filename.includes('node_modules')) return { code: content };
+      if (filename && filename.includes('node_modules') && !filename.includes('node_modules/svultra/')) return { code: content };
 
       log.debug(`Processing file: ${filename}`);
       let ast;
