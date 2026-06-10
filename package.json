@@ -19,7 +19,7 @@
     "./kit/api":          "./src/kit/api.js",
     "./kit/router":       "./src/kit/router/index.js"
   },
-  "workspaces": ["demo"],
+  "workspaces": ["demo", "demo-kit"],
   "files": [
     "index.js",
     "src"
@@ -31,6 +31,9 @@
     "demo": "npm run dev",
     "demo:build": "npm run build",
     "demo:preview": "npm run preview",
+    "kit": "vite --config demo-kit/vite.config.js --host 0.0.0.0 --port 5174",
+    "kit:build": "vite build --config demo-kit/vite.config.js",
+    "kit:preview": "vite preview --config demo-kit/vite.config.js --host 0.0.0.0 --port 4174",
     "test": "node --test test/*.test.js"
   },
   "keywords": [

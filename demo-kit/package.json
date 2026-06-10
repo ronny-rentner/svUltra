@@ -1,0 +1,11 @@
+{
+  "name": "svultra-demo-kit",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "svultra": "file:..",
+    "@iconify/svelte": "*",
+    "@zerodevx/svelte-toast": "*",
+    "trap-focus-svelte": "*"
+  }
+}
