@@ -1,6 +1,99 @@
+import { walk } from 'estree-walker';
+import { parse } from 'svelte/compiler';
+import MagicString from 'magic-string';
+
 import { createScopedLogger } from '../logger.js';
 
 const log = createScopedLogger('syntax-sugar', 'info');
+
+// Svelte 4-style `slot="name"` and `let:prop` rewritten to the Svelte 5
+// named-snippet form. AST-based: nested same-name tags and `>` inside
+// attribute expressions are resolved by the parser, which a regex over the
+// raw source cannot do. Runs after the string replacements, which turn the
+// remaining svUltra shorthands into parseable Svelte.
+//   <tag slot="x" ...>body</tag>  -> {#snippet x()}<tag ...>body</tag>{/snippet}
+//   <tag slot="x" ... />          -> {#snippet x()}<tag ... />{/snippet}
+//   <svelte:fragment slot="x">body</svelte:fragment> -> {#snippet x()}body{/snippet}
+//   <Tag let:a>body</Tag>         -> <Tag>{#snippet children(a)}body{/snippet}</Tag>
+// slot= and let: combine: the let: names become the snippet parameters, in
+// order of appearance; `let:name={alias}` passes the alias pattern through.
+function rewriteSlotSugar(content, filename) {
+  if (!content.includes('slot=') && !content.includes('let:')) {
+    return content;
+  }
+
+  let ast;
+  try {
+    ast = parse(content);
+  } catch (error) {
+    log.error(`Cannot parse ${filename} for the slot/let rewrite: ${error.message}`);
+    return content;
+  }
+
+  const ms = new MagicString(content);
+  let hasTransformed = false;
+
+  walk(ast.html, {
+    enter(node) {
+      if (!node.attributes) {
+        return;
+      }
+
+      const slotAttr = node.attributes.find(attr =>
+        attr.type === 'Attribute' && attr.name === 'slot' &&
+        Array.isArray(attr.value) && attr.value[0]?.type === 'Text');
+      const letDirectives = node.attributes.filter(attr => attr.type === 'Let');
+
+      if (!slotAttr && !letDirectives.length) {
+        return;
+      }
+      // let: without a body has nothing to receive the parameters
+      if (!slotAttr && !node.children?.length) {
+        return;
+      }
+
+      const params = letDirectives.map(directive => directive.expression
+        ? content.slice(directive.expression.start, directive.expression.end)
+        : directive.name
+      ).join(', ');
+
+      if (slotAttr && node.name === 'svelte:fragment') {
+        // the fragment exists only to carry slot=, so drop the wrapper tags
+        const openEnd = content.indexOf('>', Math.max(...node.attributes.map(attr => attr.end))) + 1;
+        const closeStart = content.lastIndexOf('</', node.end - 2);
+        if (closeStart < node.start) {
+          return; // self-closing fragment: nothing to unwrap
+        }
+        ms.overwrite(node.start, openEnd, `{#snippet ${slotAttr.value[0].data}(${params})}`);
+        ms.overwrite(closeStart, node.end, '{/snippet}');
+        hasTransformed = true;
+        return;
+      }
+
+      // Strip the sugar attributes together with their leading whitespace.
+      for (const attr of letDirectives.concat(slotAttr ?? [])) {
+        let from = attr.start;
+        while (/\s/.test(content[from - 1])) {
+          from--;
+        }
+        ms.remove(from, attr.end);
+      }
+
+      if (slotAttr) {
+        ms.appendLeft(node.start, `{#snippet ${slotAttr.value[0].data}(${params})}`);
+        ms.appendRight(node.end, '{/snippet}');
+      } else {
+        // let: only: the tag stays, its body becomes an explicit children snippet
+        ms.appendLeft(node.children[0].start, `{#snippet children(${params})}`);
+        ms.appendRight(node.children.at(-1).end, '{/snippet}');
+      }
+
+      hasTransformed = true;
+    },
+  });
+
+  return hasTransformed ? ms.toString() : content;
+}
 
 // Default replacements: lossless rewrites of svUltra shorthands into standard
 // Svelte syntax, safe for any project. Project-specific shortcuts (media-query
@@ -22,18 +115,6 @@ const defaultReplacements = [
   [/<([A-Za-z0-9]+)([^>]*?)\s\{\$([A-Za-z0-9_]+)\}([^>]*?)(\/?)>/g, '<$1$2 $3={$$$3}$4$5>'],
   //   `<input bind:{value} />`  -> `<input bind:value={value} />`
   [/<([A-Za-z0-9]+)([^>]*?)\sbind:\{([A-Za-z0-9_]+)\}([^>]*?)(\/?)>/g, '<$1$2 bind:$3={$3}$4$5>'],
-
-  // Svelte 4-style `slot="name"` on a component child rewrites to the Svelte 5
-  // named-snippet form. Applies to component invocations only (uppercase tag).
-  //   <Tag slot="x" ...>body</Tag>   -> {#snippet x()}<Tag ...>body</Tag>{/snippet}
-  [/<([A-Z]\w*)([^>]*?)\s+slot="(\w+)"([^>]*?)>([\s\S]*?)<\/\1>/g,
-    '{#snippet $3()}<$1$2$4>$5</$1>{/snippet}'],
-  //   <Tag slot="x" ... />           -> {#snippet x()}<Tag ... />{/snippet}
-  [/<([A-Z]\w*)([^>]*?)\s+slot="(\w+)"([^>]*?)\s*\/>/g,
-    '{#snippet $3()}<$1$2$4 />{/snippet}'],
-  //   <svelte:fragment slot="x">body</svelte:fragment>  -> drop the wrapper
-  [/<svelte:fragment([^>]*?)\s+slot="(\w+)"([^>]*?)>([\s\S]*?)<\/svelte:fragment>/g,
-    '{#snippet $2()}$4{/snippet}'],
 
   // Block syntax: drop the `#`/`:`/`@` prefixes Svelte requires.
   ['{snippet ', '{#snippet '],
@@ -96,7 +177,7 @@ export default function syntaxSugar(replacements = [], options = {}) {
 
   return {
     markup({ content, filename }) {
-      if (filename.includes('node_modules')) {
+      if (filename.includes('node_modules') && !filename.includes('node_modules/svultra/')) {
         return;
       }
 
@@ -154,6 +235,8 @@ export default function syntaxSugar(replacements = [], options = {}) {
           modifiedContent = modifiedContent.replace(searchValue, replaceValue);
         }
       });
+
+      modifiedContent = rewriteSlotSugar(modifiedContent, filename);
 
       // Restore preserved sections
       for (const [tagName, sections] of Object.entries(preservedSections)) {

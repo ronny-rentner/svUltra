@@ -171,10 +171,48 @@ test('slot rewrite preserves other attributes on the component (default)', () =>
   );
 });
 
-test('slot rewrite leaves slot="x" on lowercase (non-component) tags alone (default)', () => {
-  // Component-targeting only — uppercase first letter. Lowercase tags stay.
+test('slot rewrite wraps lowercase HTML tags in a named snippet', () => {
   const out = run('<Card><span slot="header">Hi</span></Card>', undefined);
-  assert.equal(out, '<Card><span slot="header">Hi</span></Card>');
+  assert.equal(out, '<Card>{#snippet header()}<span>Hi</span>{/snippet}</Card>');
+});
+
+test('slot rewrite keeps the full body of nested same-name tags', () => {
+  assert.equal(
+    run('<Card slot="header">A<Card>B</Card>C</Card>', undefined),
+    '{#snippet header()}<Card>A<Card>B</Card>C</Card>{/snippet}'
+  );
+});
+
+test('slot rewrite survives `>` inside attribute expressions', () => {
+  assert.equal(
+    run('<Card><Btn slot="action" onclick={() => x > 1}>OK</Btn></Card>', undefined),
+    '<Card>{#snippet action()}<Btn onclick={() => x > 1}>OK</Btn>{/snippet}</Card>'
+  );
+});
+
+test('rewrites let: on a component to a children snippet parameter', () => {
+  assert.equal(
+    run('<MediaQuery query="(max-width: 768px)" let:matches>{if matches}M{/if}</MediaQuery>', undefined),
+    '<MediaQuery query="(max-width: 768px)">{#snippet children(matches)}{#if matches}M{/if}{/snippet}</MediaQuery>'
+  );
+});
+
+test('slot and let: combine into snippet name and parameters', () => {
+  assert.equal(
+    run('<List><div slot="item" let:thing>{thing}</div></List>', undefined),
+    '<List>{#snippet item(thing)}<div>{thing}</div>{/snippet}</List>'
+  );
+});
+
+test('skips node_modules files except svultra itself', () => {
+  assert.equal(
+    run('{if a}x{/if}', undefined, '/p/node_modules/foo/C.svelte'),
+    '{if a}x{/if}'
+  );
+  assert.equal(
+    run('{if a}x{/if}', undefined, '/p/node_modules/svultra/src/kit/components/C.svelte'),
+    '{#if a}x{/if}'
+  );
 });
 
 test('appends custom replacements after the defaults', () => {
