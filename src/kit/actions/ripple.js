@@ -1,3 +1,5 @@
+import './ripple.css';
+
 export function ripple(node) {
   //console.log('ripple() setup');
 

@@ -5,6 +5,8 @@
   // import directly. Override svultra/kit/components/ContactForm.svelte
   // via Vite alias to wire up the real form / backend.
 
+  import { toastWarning } from './Toasts.svelte';
+
   export let dialog;
 
   export function onclick(event) {
@@ -13,7 +15,7 @@
       'svultra/kit/components/ContactForm.svelte: default stub. ' +
       'Override via Vite alias to enable contact form.'
     );
-    alert('Contact form not configured. Override svultra/kit/components/ContactForm.svelte via Vite alias.');
+    toastWarning('Contact form not configured. Override svultra/kit/components/ContactForm.svelte via Vite alias.');
   }
 </script>
 

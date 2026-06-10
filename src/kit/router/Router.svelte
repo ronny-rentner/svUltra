@@ -23,7 +23,7 @@
 
   export function getBaseUrl() {
     if ('baseUrl' in window.config) return window.config.baseUrl;
-    return window.config.dev ? import.meta.env.BASE_URL : '';
+    return window.config.dev ? import.meta.env.BASE_URL.replace(/\/$/, '') : '';
   }
 
   export function preloaded(component) {

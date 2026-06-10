@@ -1,0 +1,23 @@
+/* The ripple span is created at runtime, outside any component, so scoped
+   component CSS cannot reach it. Importing the action pulls this file into
+   the app's CSS bundle; app stylesheets can still override .ripple. */
+
+.ripple {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(225, 225, 225, 0.5);
+  transform: scale(0);
+  animation: ripple-animation 0.6s linear;
+  pointer-events: none; /* Let clicks pass through to the element */
+}
+
+:root[data-theme="dark"] .ripple {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+@keyframes ripple-animation {
+  to {
+    transform: scale(4);
+    opacity: 0;
+  }
+}

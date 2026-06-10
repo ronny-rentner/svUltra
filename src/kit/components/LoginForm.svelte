@@ -1,5 +1,6 @@
 <script>
   import Button from './Button.svelte';
+  import { toastWarning } from './Toasts.svelte';
   import loginIcon from '@iconify-icons/ph/sign-in-duotone';
 
   // Default stub. The real LoginForm lives in each consumer (per-app auth
@@ -11,7 +12,7 @@
       'svultra/kit/components/LoginForm.svelte: default stub. ' +
       'Override via Vite alias to enable sign-in.'
     );
-    alert('Sign-in not configured. Override svultra/kit/components/LoginForm.svelte via Vite alias.');
+    toastWarning('Sign-in not configured. Override svultra/kit/components/LoginForm.svelte via Vite alias.');
   }
 </script>
 
