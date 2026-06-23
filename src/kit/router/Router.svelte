@@ -2,21 +2,24 @@
   import { tick, setContext } from 'svelte';
   import { writable, get } from 'svelte/store';
 
-  export function meta({ title, description }) {
-    console.log('meta() called', title, description);
-    if (title) {
-      document.title = title;
-    }
+  // Sets the page title and description. The title runs through
+  // window.config.titleTemplate: `{title}` is the given title (falling back to
+  // the prettified route slug when omitted — '/user-settings' -> 'User Settings',
+  // '/' -> 'Home'), and `{slug}` is always the prettified slug. Each page calls
+  // meta() itself; there is no automatic fallback.
+  export function meta({ title, description } = {}) {
+    const seg = getCurrentPath().replace(/\/+$/, '').split('/').pop();
+    const slug = seg ? seg.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ') : 'Home';
+    const template = window.config?.titleTemplate ?? '{title}';
+    document.title = template.replaceAll('{title}', title || slug).replaceAll('{slug}', slug);
 
     if (description) {
       let metaDescription = document.querySelector("meta[name='description']");
-
       if (!metaDescription) {
         metaDescription = document.createElement("meta");
         metaDescription.name = "description";
         document.head.appendChild(metaDescription);
       }
-
       metaDescription.content = description;
     }
   }
@@ -162,18 +165,21 @@
   import { onMount, onDestroy } from 'svelte';
 
   import LoadingOverlay from '#kit/components/LoadingOverlay.svelte';
+  import DefaultLayout from '#kit/components/Layout.svelte';
 
-  const { routes: _routes , Layout } = $props();
+  const { routes: _routes , Layout = DefaultLayout } = $props();
+  // `routes` is the static, build-generated route table; bridging it once into
+  // the module-level resolver is by design (see module scope) and it never changes.
+  // svelte-ignore state_referenced_locally
   routes = _routes;
 
-  let layoutConfig = $state({ showHeader: false, contrast: false });
+  // pageConfig is the current page's display config: pages getContext('pageConfig')
+  // and set their own preferences on it (e.g. contrast), and the Layout reads it
+  // to render accordingly. The Router owns it because it owns the current page; it
+  // is never reassigned, so every consumer shares the same reactive proxy.
+  let pageConfig = $state({ showHeader: true, showFooter: true, contrast: false });
 
-  function updateLayout(args) {
-    console.log('updateLayout()', args, layoutConfig);
-    layoutConfig = { ...layoutConfig, ...args }
-
-  }
-  setContext('updateLayout', updateLayout);
+  setContext('pageConfig', pageConfig);
   setContext('isLoading', isLoading);
 
   function handleLinkClick(event) {
@@ -228,7 +234,7 @@
 </script>
 
 {if initialized}
-  <Layout {layoutConfig}>
+  <Layout {pageConfig}>
   {if $isLoading}
     {await fadeTimeout() then}
       <LoadingOverlay showLogo={false} />

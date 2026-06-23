@@ -131,6 +131,19 @@ const defaultReplacements = [
   ['{html ',    '{@html '],
   ['{try}',     '{#try}'],
   ['{catch ',   '{:catch '],
+
+  // Prepend `// svelte-ignore state_referenced_locally` to a bare `meta(...)`
+  // call. The Router passes meta() to pages as a (reactive) prop, and Svelte
+  // 5.56 flags the call site with state_referenced_locally — a false positive
+  // here. Skips calls already annotated, and never matches a `function meta(...)`
+  // declaration (that line doesn't start with `meta(`).
+  [/^([ \t]*)meta[ \t]*\(/gm, (match, indent, offset, source) => {
+    const before = source.slice(0, offset);
+    if (before.trimEnd().endsWith('svelte-ignore state_referenced_locally')) {
+      return match;
+    }
+    return `${indent}// svelte-ignore state_referenced_locally\n${match}`;
+  }],
 ];
 
 // Tags whose contents are protected from the replacements above.

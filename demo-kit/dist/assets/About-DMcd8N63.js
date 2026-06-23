@@ -1,2 +1,0 @@
-import{T as e,g as t,h as n,p as r}from"./index-CBq6zWtW.js";import{t as i}from"./components-DZCmynUK.js";var a=n(`<h2>About</h2>`);function o(n){i(n,{header:e=>{r(e,a())},children:(n,i)=>{e(),r(n,t(`Placeholder About page. The chrome (header, nav, footer) is the same
-  instance — only this card's content was swapped in by the Router.`))},$$slots:{header:!0,default:!0}})}export{o as default};

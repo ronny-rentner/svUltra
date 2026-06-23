@@ -260,6 +260,123 @@ sources do.
 from `svultra/kit/assets/icons` are vendored; no `@iconify-icons/*` install
 is needed for the defaults. Pass your own Iconify icons via the `icon` prop.
 
+## Wiring your backend (`svultra/kit/api`) — one example
+
+There is no single correct way to do authentication, registration, or contact
+forms — every app's backend differs. So the kit doesn't impose a flow: it
+ships **one example** of how you *could* wire one, plus a clean seam to plug in
+whatever you actually use.
+
+The example components (`UserMenu`, and the `LoginForm` / `ContactForm` stubs)
+call back into your app through `svultra/kit/api` — `signOut`, and
+`submitSigninForm` / `submitContactForm` for the forms. By default that import
+resolves to a small stub whose functions just log a warning, so the components
+compile and render out of the box with no backend wired.
+
+If you want to follow this example, point `svultra/kit/api` at your own
+implementation with a Vite alias:
+
+```js
+// vite.config.js
+resolve: {
+  alias: {
+    // exact match: only 'svultra/kit/api' is redirected, not kit/components etc.
+    'svultra/kit/api': path.resolve(__dirname, 'src/api/api.js'),
+  },
+},
+```
+
+Your module then supplies the functions these components call (`signOut`, and
+`submitSigninForm(data)` / `submitContactForm(data)` if you use those forms).
+They import the public `svultra/kit/api` specifier (not the internal `#kit/*`
+one) precisely so a consumer alias can intercept it.
+
+This is just a starting point. The example currently shows a simple token
+sign-in; it does not (yet) include things like "Sign in with Google" or "Sign
+in with LinkedIn" — those may come later. You are free to extend it, swap in a
+different flow, or skip the kit's auth components entirely and build your own —
+the seam is optional, not a contract you must satisfy.
+
+## Generating routes (`svultra/kit/router/generateRoutes`)
+
+`Router` takes a `routes` map. You can write it by hand (see the kit demo) or
+generate it from a `src/pages/` directory with the bundled Vite plugin:
+
+```js
+// vite.config.js
+import generateRoutesPlugin from 'svultra/kit/router/generateRoutes';
+
+export default defineConfig({
+  plugins: [
+    svelte(),
+    generateRoutesPlugin({
+      // optional: map generated paths to final ones
+      routeRenames: { '/home': '/', '/404': '*' },
+    }),
+  ],
+});
+```
+
+It writes `src/generatedRoutes.svelte.js` from your `.svelte` page files
+(basenames kebab-cased, `index` mapped to its directory, nested dirs
+supported) and regenerates with a reload on add / remove / change during dev.
+Hand the map to `Router`:
+
+```svelte
+import { Router } from 'svultra/kit/router';
+import Layout from 'svultra/kit/components/Layout.svelte';
+import { routes } from './generatedRoutes.svelte.js';
+
+<Router {routes} {Layout} />
+```
+
+Defaults: `pagesDir: './src/pages'`, `outputFile: './src/generatedRoutes.svelte.js'`,
+`nestedRoutes: true`, `urlPrefix: ''` — all resolved against the Vite root, so
+they work for any consumer.
+
+## pageConfig
+
+`pageConfig` is a reactive object passed to the page and the layout via Svelte
+context (key `'pageConfig'`). A page sets flags on it; the layout reads them.
+
+Defaults:
+
+```js
+{ showHeader: true, showFooter: true, contrast: false }
+```
+
+Read it from context and set a flag. Restore it on unmount so it does not carry
+to the next page:
+
+```svelte
+<script>
+  import { getContext, onDestroy } from 'svelte';
+
+  const pageConfig = getContext('pageConfig');
+  pageConfig.showHeader = false;
+  onDestroy(() => { pageConfig.showHeader = true; });
+</script>
+```
+
+| Flag | Default | Effect |
+| ---- | ------- | ------ |
+| `showHeader` | `true` | render the site header |
+| `showFooter` | `true` | render the site footer |
+| `contrast` | `false` | use the contrast nav styling |
+
+These flags are a convention a layout implements. The kit's default layout is empty
+and implements none; demo-kit's Layout implements all three. Custom flags can be
+added the same way.
+
+## Conventions
+
+The kit preserves the folder structure it was extracted from: a component or
+module keeps its source location (`components/`, `components/layout/`, the
+`actions/` and `router/` subtrees) rather than being flattened or relocated.
+Import through the established paths (the `#kit/*` internal aliases and the
+public subpath exports) instead of moving files around — the path tells you
+where the thing lives and how the code is organized.
+
 ## Import shapes
 
 svUltra ships two kinds of public entry: **barrels** (paths that end at a

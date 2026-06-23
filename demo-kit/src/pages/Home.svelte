@@ -1,11 +1,12 @@
 <script>
-  import { Card } from 'svultra/kit/components';
+  import { Card, Main } from 'svultra/kit/components';
 </script>
 
-<Card>
-  <h2 slot="header">svUltra Kit</h2>
-  This page renders inside the kit's Layout. Above is the responsive nav
-  (with dark-mode toggle, mobile drawer at narrow widths) and at the bottom
-  the placeholder Footer. Click About or Pricing in the menu to see the
-  Router move between pages without a reload.
-</Card>
+<Main>
+  <Card>
+    <h2 slot="header">svUltra kit</h2>
+    The kit running on its own — a frontend-only app, no backend. The header,
+    dark-mode toggle and footer come from this demo's custom Layout; the Router
+    swaps pages without a reload.
+  </Card>
+</Main>

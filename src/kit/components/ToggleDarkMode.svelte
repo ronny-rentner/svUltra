@@ -7,11 +7,9 @@
 
   import { configStore as config } from '#kit/stores.js';
 
-  let { mobile, ...rest } = $props();
+  let { mobile, size = mobile ? "1.25rem" : "1rem", ...rest } = $props();
 
   let rotate = $state(false);
-
-  const size = mobile ? "1.25rem" : "1rem";
 
   function onclick(event) {
     rotate = true;

@@ -4,13 +4,12 @@
 
 <script>
   import { Router } from 'svultra/kit/router';
-  import Layout from 'svultra/kit/components/Layout.svelte';
+  import Layout from './Layout.svelte';
 
   const routes = {
-    '/':        () => import('./pages/Home.svelte'),
-    '/about':   () => import('./pages/About.svelte'),
-    '/pricing': () => import('./pages/Pricing.svelte'),
-    '*':        () => import('./pages/404.svelte'),
+    '/':      () => import('./pages/Home.svelte'),
+    '/about': () => import('./pages/About.svelte'),
+    '*':      () => import('./pages/404.svelte'),
   };
 </script>
 

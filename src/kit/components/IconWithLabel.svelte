@@ -4,31 +4,15 @@
 
   let {
     icon = defaultIcon,
-    iconSize = '1.25rem',
-    width,
-    height,
-    size,
-    label,
+    size = '1.25rem',
+    width = size,
+    height = size,
     tooltip,
     placement,
     children,
+    label = children,
     ...rest
   } = $props();
-
-  if (children) {
-    label = children;
-  }
-
-  // Icons are supposed to be square
-  if (size) {
-    iconSize = size;
-  }
-  if (!width) {
-    width = iconSize;
-  }
-  if (!height) {
-    height = iconSize;
-  }
 </script>
 
 <style>

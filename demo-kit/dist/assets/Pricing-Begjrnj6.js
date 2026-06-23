@@ -1,2 +1,0 @@
-import{T as e,g as t,h as n,p as r}from"./index-CBq6zWtW.js";import{t as i}from"./components-DZCmynUK.js";var a=n(`<h2>Pricing</h2>`);function o(n){i(n,{header:e=>{r(e,a())},children:(n,i)=>{e(),r(n,t(`Placeholder Pricing page. The Menu in the nav has Home, About, Pricing as
-  its default items.`))},$$slots:{header:!0,default:!0}})}export{o as default};

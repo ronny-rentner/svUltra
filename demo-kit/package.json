@@ -4,6 +4,7 @@
   "type": "module",
   "dependencies": {
     "svultra": "file:..",
+    "@picocss/pico": "*",
     "@iconify/svelte": "*",
     "@zerodevx/svelte-toast": "*",
     "trap-focus-svelte": "*"

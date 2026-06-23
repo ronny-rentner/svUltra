@@ -122,6 +122,23 @@ test('expands multiple constants in one tag (default)', () => {
   assert.equal(run('{const a = 1, b = 2}', undefined), '{@const a = 1} {@const b = 2}');
 });
 
+test('prepends svelte-ignore to a bare meta() call (default)', () => {
+  assert.equal(
+    run('  meta({ title: "X" });', undefined),
+    '  // svelte-ignore state_referenced_locally\n  meta({ title: "X" });'
+  );
+});
+
+test('does not double-annotate an already-ignored meta() call (default)', () => {
+  const src = '  // svelte-ignore state_referenced_locally\n  meta({ title: "X" });';
+  assert.equal(run(src, undefined), src);
+});
+
+test('does not annotate a meta function declaration or a destructure (default)', () => {
+  assert.equal(run('export function meta(opts) {}', undefined), 'export function meta(opts) {}');
+  assert.equal(run('  let { meta } = $props();', undefined), '  let { meta } = $props();');
+});
+
 test('rewrites the store shorthand on components (default)', () => {
   assert.equal(run('<Comp {$user} />', undefined), '<Comp user={$user} />');
 });

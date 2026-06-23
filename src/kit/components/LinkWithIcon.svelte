@@ -1,16 +1,9 @@
 <script>
 import Icon from './IconWithLabel.svelte';
 
-let { icon, href, blank, target, children, ...rest } = $props();
-
-if (!href) {
-  // This is needed to make the link focussable and 'clickable' with keys
-  href = "/"
-}
-
-if (blank) {
-  target="_blank";
-}
+// href defaults to "/" so the link stays focusable and keyboard-clickable;
+// blank is a convenience that sets target="_blank"
+let { icon, href = '/', blank, target = blank ? '_blank' : undefined, children, ...rest } = $props();
 
 //console.log('Link', icon, href, blank, children)
 
