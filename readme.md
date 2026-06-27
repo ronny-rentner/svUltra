@@ -368,6 +368,37 @@ These flags are a convention a layout implements. The kit's default layout is em
 and implements none; demo-kit's Layout implements all three. Custom flags can be
 added the same way.
 
+## State & storage (`svultra/kit/stores`)
+
+Reach for `svultra/kit/stores` instead of touching `localStorage` directly — it
+provides a localStorage-backed Svelte writable:
+
+```js
+import { createLocalStorageStore } from 'svultra/kit/stores';
+
+const theme = createLocalStorageStore('theme', { dark: false });
+// $theme reads reactively in a component; theme.set(...) / theme.update(...)
+// write through to localStorage[key] as JSON.
+```
+
+`createLocalStorageStore(key, initialValue, updateFromLocalStorage = true)`:
+
+- seeds from `localStorage[key]` (JSON-parsed), falling back to `initialValue`
+  when unset or unparseable;
+- writes the JSON-serialized value back on every change;
+- for object values a plain `set`/`update` **deep-merges** into the current value
+  (arrays replace wholesale; wrap a field with `overwrite(value)` to replace
+  rather than merge — both `overwrite` and `merge` are exported here);
+- mirrors changes from other tabs via the `storage` event, unless
+  `updateFromLocalStorage` is `false`.
+
+Pre-built stores live in the same module:
+
+| Export | Key | Initial |
+| ------ | --- | ------- |
+| `configStore` | `config` | `{ darkMode: false }` |
+| `personStore` | `person_data` | `null` |
+
 ## Conventions
 
 The kit preserves the folder structure it was extracted from: a component or

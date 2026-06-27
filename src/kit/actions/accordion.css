@@ -1,0 +1,51 @@
+/*
+ * Pico integration for the accordion action (use:accordion). Imported by
+ * accordion.js, so it ships automatically wherever the action is used.
+ *
+ * The action marks elements with the `accordion` class (and `closing` while
+ * collapsing) and slides the panel's height open/closed while flipping the `open`
+ * attribute in a single frame — which trips a few of Pico's [open]-conditional
+ * summary styles. These fix that, scoped to action-driven accordions. Plain
+ * <details> have no `accordion` class; the dropdown menu uses the same action but
+ * carries Pico's `.dropdown` and is excluded — it has its own styling.
+ */
+
+/* The wrapper the action puts around the content — the details' only non-summary
+   child. It runs the height animation, so it must clip its content and carry no
+   spacing of its own (applies to all accordions, dropdown included). */
+details.accordion > div {
+  overflow: hidden;
+  padding: 0;
+  margin: 0;
+}
+
+details.accordion:not(.dropdown) {
+  /* Keep the summary one colour. Pico mutes it when open and tints it on focus
+     (through these variables); with the height animation that reads as a flicker. */
+  --pico-accordion-open-summary-color: var(--pico-color);
+  --pico-accordion-active-summary-color: var(--pico-color);
+
+  /* Pico adds a summary bottom-margin only while [open]; since the action flips
+     [open] in one frame it would pop in/out instead of easing with the slide. */
+  &[open] > summary {
+    margin-bottom: 0;
+  }
+
+  /* Pico's focus outline is offset ~0.5rem around the summary box, so it floats
+     inside the card and hangs into the content. Draw the ring on the whole item so
+     it lines up with the card's border instead. */
+  & > summary:focus-visible:not([role]) {
+    outline: none;
+  }
+  &:has(> summary:focus-visible) {
+    outline: var(--pico-outline-width) solid var(--pico-primary-focus);
+  }
+
+  /* The chevron rotates via details[open] > summary::after. On close, [open] stays
+     set until the content has finished sliding out, so the chevron only flips back
+     at the very end. While `closing`, rotate it back now so it turns in step with
+     the slide. */
+  &.closing > summary::after {
+    transform: rotate(-90deg);
+  }
+}

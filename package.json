@@ -16,6 +16,7 @@
     "./kit/assets/icons": "./src/kit/assets/icons/index.js",
     "./kit/assets/*":     "./src/kit/assets/*",
     "./kit/stores":       "./src/kit/stores.js",
+    "./kit/recaptcha":    "./src/kit/recaptcha.js",
     "./kit/router":       "./src/kit/router/index.js",
     "./kit/router/generateRoutes": "./src/kit/router/generateRoutes.js"
   },

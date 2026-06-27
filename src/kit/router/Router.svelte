@@ -1,6 +1,7 @@
 <script context="module">
   import { tick, setContext } from 'svelte';
   import { writable, get } from 'svelte/store';
+  import { configStore } from '#kit/stores';
 
   // Sets the page title and description. The title runs through
   // window.config.titleTemplate: `{title}` is the given title (falling back to
@@ -130,8 +131,10 @@
         const loadedComponent = await component();
         //console.log('loadedComponent', loadedComponent, loadedComponent.default);
 
-        //Artificial delay for testing the loading message overlay
-        //await new Promise(resolve => setTimeout(resolve, 4000));
+        // Dev aid: set configStore.loadingDelay (turn it off via the header notice) to
+        // make the Router wait that many ms, exercising the loading overlay.
+        const loadingDelay = get(configStore).loadingDelay || 0;
+        if (loadingDelay) await new Promise(resolve => setTimeout(resolve, loadingDelay));
 
         //const html = renderComponentToHTML(loadedComponent.default, { meta: meta });
         //console.log('HTML', html, loadedComponent, loadedComponent.default);
