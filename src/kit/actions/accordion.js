@@ -45,7 +45,6 @@ export function accordion(node, options = {}) {
   node.classList.add('accordion');
 
   function onClick(e) {
-    console.log('onClick', event);
     e.preventDefault();
     if (isClosing || !node.open) {
       open();

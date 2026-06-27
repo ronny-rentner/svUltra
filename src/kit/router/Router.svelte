@@ -1,7 +1,6 @@
 <script context="module">
   import { tick, setContext } from 'svelte';
   import { writable, get } from 'svelte/store';
-  import { configStore } from '#kit/stores';
 
   // Sets the page title and description. The title runs through
   // window.config.titleTemplate: `{title}` is the given title (falling back to
@@ -131,9 +130,10 @@
         const loadedComponent = await component();
         //console.log('loadedComponent', loadedComponent, loadedComponent.default);
 
-        // Dev aid: set configStore.loadingDelay (turn it off via the header notice) to
-        // make the Router wait that many ms, exercising the loading overlay.
-        const loadingDelay = get(configStore).loadingDelay || 0;
+        // Simulate slow loading to test the loading screens and SPA behaviour under slow
+        // page loads: `window.config.loadingDelay = 4000` in the console makes the Router
+        // wait that many ms before swapping the page in (session-only; a reload clears it).
+        const loadingDelay = window.config?.loadingDelay || 0;
         if (loadingDelay) await new Promise(resolve => setTimeout(resolve, loadingDelay));
 
         //const html = renderComponentToHTML(loadedComponent.default, { meta: meta });
