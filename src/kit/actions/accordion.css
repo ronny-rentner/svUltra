@@ -10,6 +10,14 @@
  * carries Pico's `.dropdown` and is excluded — it has its own styling.
  */
 
+/* Pico rotates the marker on [open], but the action holds [open] until the slide
+   finishes, so the marker would flip back late. While `.closing`, set the closed
+   rotation now — Pico transitions the marker's transform, so it turns in step with
+   the slide. */
+details.closing:not(.dropdown) > summary::after {
+  transform: rotate(-90deg);
+}
+
 /* The wrapper the action puts around the content — the details' only non-summary
    child. It runs the height animation, so it must clip its content and carry no
    spacing of its own (applies to all accordions, dropdown included). */

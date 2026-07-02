@@ -1,48 +1,34 @@
 import './accordion.css';
 import { trapFocus } from 'trap-focus-svelte';
 
+// Border-box height of an element plus its own vertical margins.
+function outerHeight(el) {
+  const style = getComputedStyle(el);
+  return el.getBoundingClientRect().height + parseFloat(style.marginTop) + parseFloat(style.marginBottom);
+}
+
 //NOTE: Not a real accordion but a drop down
 
 //TODO: Rename to something more fitting like dropdownanimation.js
-
-//TODO: Optional exclusive mode — open one item and animate-close the others in its
-//      group (grouped via the `name` attribute), like a classic accordion.
-
-// The action marks each element with an `accordion` class, and adds a `closing`
-// class while a panel collapses — both are there as styling hooks. Note the height
-// animates smoothly but the `open` attribute flips in a single frame, so CSS keyed
-// on `details[open]` changes instantly instead of easing with the slide; mirror
-// such a style on `.closing` to keep it in step while closing.
 export function accordion(node, options = {}) {
   let animation = null;
   let isClosing = false;
   let isExpanding = false;
   let timeoutId = null;
-  const duration = options.duration || 300; // Default duration if not provided
+  const duration = options.duration || 300; // Default duration 300 ms if not provided
   const summary = node.querySelector(options.trigger || 'summary');
-  // The content is animated inside a wrapper that carries no padding or margin of
-  // its own (styled in accordion.css), so it collapses cleanly to 0 and clips
-  // whatever it holds — letting the content style its own spacing without flooring
-  // the animation. By default the content is everything in the node except the
-  // trigger; pass options.content to wrap one specific element.
-  const wrapper = document.createElement('div');
-  // Opt-in focus trap (for menu-style dropdowns) needs the wrapper focusable.
-  if (options.trapFocus) wrapper.setAttribute('tabindex', '-1');
+  const content = summary.nextElementSibling;
 
-  if (options.content) {
-    const content = node.querySelector(options.content);
-    content.before(wrapper);
-    wrapper.append(content);
-  } else {
-    const rest = [...node.children].filter((child) => child !== summary);
-    if (rest[0]) rest[0].before(wrapper);
-    else node.append(wrapper);
-    wrapper.append(...rest);
-  }
+  // Ensure the content panel is focusable
+  content.setAttribute('tabindex', '-1');
 
-  // Mark the element so CSS can target action-driven accordions without touching
-  // plain <details>.
-  node.classList.add('accordion');
+  // Full height including the children's own margins. scrollHeight drops margins that
+  // collapse out of the panel, which is what makes the slide jump at the ends. A leaf
+  // panel (no element children, e.g. a bare <p>) has no such margins, so scrollHeight
+  // is already correct there.
+  const fullHeight = () => content.children.length
+    ? [...content.children].reduce((h, c) => h + outerHeight(c), 0)
+    : content.scrollHeight;
 
   function onClick(e) {
     e.preventDefault();
@@ -61,17 +47,19 @@ export function accordion(node, options = {}) {
 
   function shrink() {
     isClosing = true;
-    node.classList.add('closing');
-    const startHeight = `${wrapper.scrollHeight}px`;
-    const endHeight = '0px';
 
     if (animation) {
       animation.cancel();
     }
 
-    animation = wrapper.animate([
-      { height: startHeight, opacity: 1 },
-      { height: endHeight, opacity: 0 }
+    // Collapse the panel's own top/bottom margins along with its height, so they don't
+    // stay full-size through the slide and pop away at the end.
+    const cs = getComputedStyle(content);
+    node.classList.add('closing');
+
+    animation = content.animate([
+      { height: `${fullHeight()}px`, marginTop: cs.marginTop, marginBottom: cs.marginBottom, opacity: 1 },
+      { height: '0px', marginTop: '0px', marginBottom: '0px', opacity: 0 }
     ], {
       duration,
       easing: 'ease-out'
@@ -90,16 +78,16 @@ export function accordion(node, options = {}) {
 
   function expand() {
     isExpanding = true;
-    const startHeight = '0px';
-    const endHeight = `${wrapper.scrollHeight}px`;
 
     if (animation) {
       animation.cancel();
     }
 
-    animation = wrapper.animate([
-      { height: startHeight, opacity: 0 },
-      { height: endHeight, opacity: 1 }
+    const cs = getComputedStyle(content);
+
+    animation = content.animate([
+      { height: '0px', marginTop: '0px', marginBottom: '0px', opacity: 0 },
+      { height: `${fullHeight()}px`, marginTop: cs.marginTop, marginBottom: cs.marginBottom, opacity: 1 }
     ], {
       duration,
       easing: 'ease-out'
@@ -116,15 +104,14 @@ export function accordion(node, options = {}) {
     isClosing = false;
     isExpanding = false;
     if (!open) {
-      wrapper.style.height = '0px';
+      content.style.height = '0px';
     } else {
-      wrapper.style.height = 'auto';
-      // Menu dropdowns trap focus inside the open panel; accordions keep it on the
-      // trigger so it can be toggled again — hence opt-in.
-      if (options.trapFocus) {
-        trapFocus(wrapper);
-        wrapper.focus();
-      }
+      content.style.height = 'auto';
+      //content.style.border = '1px red solid';
+      trapFocus(content);
+      content.focus();
+      //console.log('focus', content, content.tabIndex, document.activeElement);
+      //setTimeout(() => content.querySelector('a')[0].focus());
     }
   }
 
@@ -145,9 +132,6 @@ export function accordion(node, options = {}) {
       if (timeoutId) {
         window.cancelAnimationFrame(timeoutId);
       }
-
-      // Unwrap: move the content back out and drop the wrapper
-      wrapper.replaceWith(...wrapper.childNodes);
     }
   };
 }
