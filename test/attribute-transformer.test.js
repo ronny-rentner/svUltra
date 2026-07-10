@@ -3,16 +3,14 @@ import assert from 'node:assert/strict';
 
 import attributeTransformer from '../src/preprocessors/attribute-transformer.js';
 
-// Default config mirrors the demo's svelte.config.js
-const defaultAttrs = [
-  ['tooltip', 'data-tooltip'],
-  ['placement', 'data-placement'],
+// Custom rules on top of the built-in defaults (tooltip, placement)
+const extraAttrs = [
   ['ariaLabel', 'aria-label'],
 ];
 
 // Run the preprocessor's markup() over a snippet and return the resulting code.
 // markup() returns undefined when nothing was transformed, so fall back to input.
-function transform(content, attributes = defaultAttrs, filename = 'Test.svelte') {
+function transform(content, attributes = extraAttrs, filename = 'Test.svelte') {
   const pp = attributeTransformer({ attributes });
   const result = pp.markup({ content, filename });
   return result?.code ?? content;
@@ -59,6 +57,23 @@ test('skips components (capitalized tags are not elements)', () => {
   assert.doesNotMatch(out, /data-tooltip/);
 });
 
+test('supports a function replacement', () => {
+  // lowercasing needs a function — '$1' capture references can't do it
+  const out = transform('<span dataTooltip="a b"></span>', [[/^data([A-Z]\w*)/, (m, p1) => 'data-' + p1.toLowerCase()]]);
+  assert.match(out, /data-tooltip="a b"/);
+});
+
+test('emits a replacement containing = verbatim as the whole attribute', () => {
+  const out = transform('<button !enabled>x</button>', [[/!(.*)/, '$1={false}']]);
+  assert.match(out, /<button enabled=\{false\}>/);
+});
+
+test('useDefaults:false drops the built-in rules', () => {
+  const pp = attributeTransformer({ useDefaults: false, attributes: extraAttrs });
+  const result = pp.markup({ content: '<div tooltip="a b"></div>', filename: 'Test.svelte' });
+  assert.equal(result, undefined);
+});
+
 test('leaves unmatched attributes untouched', () => {
   const input = '<div title="hello world" class="x"></div>';
   assert.equal(transform(input), input);
@@ -66,13 +81,19 @@ test('leaves unmatched attributes untouched', () => {
 
 test('skips files under node_modules', () => {
   const input = '<div tooltip="a b"></div>';
-  const pp = attributeTransformer({ attributes: defaultAttrs });
+  const pp = attributeTransformer({ attributes: extraAttrs });
   const result = pp.markup({ content: input, filename: '/proj/node_modules/x.svelte' });
   assert.equal(result.code, input);
 });
 
+test('processes svultra itself under node_modules', () => {
+  const pp = attributeTransformer({ attributes: extraAttrs });
+  const result = pp.markup({ content: '<div tooltip="a b"></div>', filename: '/proj/node_modules/svultra/src/kit/components/C.svelte' });
+  assert.match(result.code, /data-tooltip="a b"/);
+});
+
 test('returns undefined (no map churn) when nothing matches', () => {
-  const pp = attributeTransformer({ attributes: defaultAttrs });
+  const pp = attributeTransformer({ attributes: extraAttrs });
   const result = pp.markup({ content: '<div class="x"></div>', filename: 'Test.svelte' });
   assert.equal(result, undefined);
 });

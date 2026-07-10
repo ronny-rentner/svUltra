@@ -17,13 +17,24 @@ This preprocessor:
 You can print the processed source code of specific components:
 
 ```javascript
-// Print a single component
-printSourceCode('MyComponent.svelte')
+export default {
+  preprocess: [
+    syntaxSugar(),
 
-// Print multiple components
-printSourceCode('Header.svelte')
-printSourceCode('Button.svelte')
+    // Button.svelte after the syntax sugar expansion
+    printSourceCode('Button.svelte'),
+
+    attributeTransformer(),
+
+    // Button.svelte after the attribute rewrite
+    printSourceCode('Button.svelte'),
+  ],
+};
 ```
+
+The name is matched as a substring of the full file path, so
+`'Button.svelte'` also matches `IconButton.svelte`, and a fragment like
+`'components/'` matches every file under that folder.
 
 ## Debug Preprocessor Chain
 
@@ -53,7 +64,7 @@ export default {
 ## Usage in Config
 
 ```javascript
-import { printSourceCode } from 'svUltra';
+import { printSourceCode } from 'svultra';
 
 export default {
   preprocess: [

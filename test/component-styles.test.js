@@ -46,3 +46,8 @@ test('skips files under node_modules', async () => {
   const out = await run('<style>\nCard { color: red; }\n</style>\n<Card>hi</Card>', '/proj/node_modules/x.svelte');
   assert.equal(out, undefined);
 });
+
+test('processes svultra itself under node_modules', async () => {
+  const out = await run('<style>\nCard { color: red; }\n</style>\n<Card>hi</Card>', '/proj/node_modules/svultra/src/kit/components/C.svelte');
+  assert.match(out.code, /:global\(\.Card-[a-f0-9]{8}\.Card-[a-f0-9]{8}\)/);
+});

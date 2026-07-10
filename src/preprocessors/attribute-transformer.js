@@ -23,7 +23,6 @@ function getAttributeValue(attr) {
  * Svelte preprocessor to transform attributes based on exact names or regex patterns.
  * @param {Object} config - Configuration object.
  * @param {Array} config.attributes - Array of [pattern, replacement] pairs for attribute transformation.
- * @param {Array<string>} config.excludeTags - List of tags to exclude from transformation.
  * @returns {Object} - Preprocessor object with a 'markup' function.
  */
 const defaultAttributes = [
@@ -32,7 +31,7 @@ const defaultAttributes = [
 ];
 
 export default function attributeTransformer(config = {}) {
-  const { useDefaults = true, attributes = [], excludeTags = [] } = config;
+  const { useDefaults = true, attributes = [] } = config;
   const attributePatterns = useDefaults ? [...defaultAttributes, ...attributes] : attributes;
 
   return {
@@ -56,7 +55,7 @@ export default function attributeTransformer(config = {}) {
           if (node.type === 'Element') {
             const tagName = node.name;
 
-            if (/^[a-zA-Z]/.test(tagName) && !excludeTags.includes(tagName)) {
+            if (/^[a-zA-Z]/.test(tagName)) {
               node.attributes.forEach(attr => {
                 if (attr.type === 'Attribute') {
                   let transformedAttribute = null;
@@ -67,8 +66,9 @@ export default function attributeTransformer(config = {}) {
                     if (newAttrName !== attr.name) {
                       log.debug('Tag: ', tagName, pattern, replacement, attr.name, newAttrName);
                       let attrValue = getAttributeValue(attr);
-                      // Include replacement exactly as specified, with or without `=`
-                      transformedAttribute = replacement.includes('=')
+                      // A result containing `=` is a complete attribute already; checking the
+                      // result (not the replacement) also allows function replacements
+                      transformedAttribute = newAttrName.includes('=')
                         ? newAttrName
                         : `${newAttrName}="${attrValue}"`;
                       break;

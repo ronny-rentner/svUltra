@@ -36,3 +36,8 @@ test('skips files under node_modules', () => {
     undefined,
   );
 });
+
+test('processes svultra itself under node_modules', () => {
+  const out = run('<Button class="a" class:b={x} />', '/proj/node_modules/svultra/src/kit/components/C.svelte').code;
+  assert.match(out, /class="a \{x \? 'b' : ''\}"/);
+});

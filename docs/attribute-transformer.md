@@ -8,7 +8,9 @@ identifier). The attribute transformer preprocessor lets you write
 whatever the DOM expects, so Pico's tooltips, the dataset API, and CSS
 attribute selectors keep working unchanged.
 
-There are no built-in rules — every project chooses which names to rewrite.
+Two rules are built in and on by default — `tooltip → data-tooltip` and
+`placement → data-placement` — and you add your own. Pass `useDefaults: false`
+to drop the built-ins and rewrite only your rules.
 
 ## Setup
 
@@ -16,15 +18,14 @@ Add it to your `svelte.config.js`, with your project's `[from, to]` rename
 rules:
 
 ```javascript
-import { attributeTransformer } from 'svUltra';
+import { attributeTransformer } from 'svultra';
 
 export default {
   preprocess: [
     // ...other preprocessors
     attributeTransformer({
       attributes: [
-        ['tooltip',   'data-tooltip'],
-        ['placement', 'data-placement'],
+        ['ariaLabel', 'aria-label'],
         ['index',     'data-index'],
       ],
     }),
@@ -52,28 +53,31 @@ your markup; for each attribute whose name matches `from`, it renames it to
 ```svelte
 <!-- becomes -->
 <article data-tooltip="Autosaved 2 minutes ago" data-placement="right">
-  <a data-index={index} data-tooltip="Remove this item">✘</a>
+  <a data-index="{index}" data-tooltip="Remove this item">✘</a>
 </article>
 ```
 
 Both attribute and Svelte-shorthand forms are rewritten:
 
 ```svelte
-<a {index}>✘</a>         <!-- becomes <a data-index={index}>✘</a> -->
-<a tooltip="…">✘</a>     <!-- becomes <a data-tooltip="…">✘</a>   -->
+<a {index}>✘</a>         <!-- becomes <a data-index="{index}">✘</a> -->
+<a tooltip="…">✘</a>     <!-- becomes <a data-tooltip="…">✘</a>     -->
 ```
+
+The rewritten value is always emitted in quotes, since static values can
+contain spaces.
 
 The rewrite applies to **HTML elements**. Component invocations
 (uppercase tag names) pass the attribute through to the component as a
-prop; the rewrite happens later, when the component forwards the value to
-a real element:
+prop; the rewrite happens inside the component, where the prop is set on
+a real element — as the kit's `Card` does:
 
 ```svelte
-<!-- inside MyCard.svelte: forwards everything to the article -->
-<article {...$$props}>…</article>
+<!-- inside Card.svelte: sets the props on the article -->
+<article {tooltip} {placement} {...rest}>…</article>
 
 <!-- caller -->
-<MyCard tooltip="…" />     <!-- arrives on article as data-tooltip -->
+<Card tooltip="Autosaved 2 minutes ago" />   <!-- the article gets data-tooltip -->
 ```
 
 ## Configuration
@@ -98,30 +102,24 @@ attributeTransformer({
 });
 ```
 
-### `excludeTags`
+### `useDefaults`
 
-Optional list of tag names to skip entirely:
+Two rules are built in and applied before your own:
 
 ```javascript
-attributeTransformer({
-  attributes: [/* … */],
-  excludeTags: ['CodeExample', 'Snippet'],
-});
+['tooltip',   'data-tooltip'],
+['placement', 'data-placement'],
 ```
 
-Useful for components that display literal source code, where renaming
-attributes inside their displayed content would silently corrupt the text.
+Pass `useDefaults: false` to apply only your `attributes` list.
 
 ## Notes & gotchas
 
 - **Put it after `syntaxSugar`.** The syntax sugar preprocessor expects
   valid Svelte syntax; renaming attributes commutes cleanly when run
   afterwards.
-- **No default rules.** Every project's rename set is project-specific —
-  what you call `tooltip` someone else might call `tip`. Keep the list in
-  `svelte.config.js`.
 - **Element-only rewrite.** Component props named `tooltip` reach the
   component verbatim; the rewrite happens when the component forwards
   the prop to a real element.
-- **Files under `node_modules` are skipped**, so dependencies are never
-  rewritten.
+- **Files under `node_modules` are skipped**, except svUltra's own kit
+  files, which are written with these shorthands.

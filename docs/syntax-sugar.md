@@ -13,7 +13,7 @@ them entirely.
 Add it to your `svelte.config.js` as the **first** preprocessor in the chain:
 
 ```javascript
-import { syntaxSugar } from 'svUltra';
+import { syntaxSugar } from 'svultra';
 
 export default {
   preprocess: [
@@ -154,6 +154,15 @@ string replacements (which by then have produced valid Svelte) and edits the
 parsed template, so nested same-name tags and `>` inside attribute
 expressions are handled correctly.
 
+### `meta()` lint suppression
+
+The Router passes `meta()` to pages as a reactive prop, and Svelte 5 flags a
+bare `meta(...)` call with a `state_referenced_locally` warning — a false
+positive there. The preprocessor prepends `// svelte-ignore
+state_referenced_locally` to the call's line, so pages call `meta(...)` without
+annotating it themselves. Calls that already carry the annotation are left
+as they are.
+
 ### Default replacement reference
 
 | You write        | Expands to        |
@@ -164,6 +173,7 @@ expressions are handled correctly.
 | `{else}`         | `{:else}`         |
 | `{else if cond}` | `{:else if cond}` |
 | `{each list}`    | `{#each list}`    |
+| `{key expr}`     | `{#key expr}`     |
 | `{await p}`      | `{#await p}`      |
 | `{then v}`       | `{:then v}`       |
 | `{catch e}`      | `{:catch e}`      |
@@ -272,8 +282,10 @@ syntaxSugar(replacements, {
 - `processTag: true` keeps the tag in place but applies the escaping above to
   its contents.
 
-Whatever you pass is merged on top of the built-in `svultra:ignore`. Tag names
-may contain only letters, digits, and colons.
+Whatever you pass is merged on top of the built-ins: `svultra:ignore` and
+`markdown` (a `<markdown>` body is source for the markdown preprocessor, so
+it is left untouched). Tag names may contain only letters, digits, and
+colons.
 
 ## Notes & gotchas
 
