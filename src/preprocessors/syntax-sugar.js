@@ -149,7 +149,7 @@ const defaultReplacements = [
 // Tags whose contents are protected from the replacements above.
 const defaultIgnoreTags = {
   // preserved verbatim — the "do not touch" marker
-  'svultra:ignore': { processTag: false, escapeCurlyBraces: true },
+  'svultra:ignore': { processTag: false },
   // markdown bodies are opaque source for the markdown preprocessor; never
   // rewrite shorthands or escape characters inside them.
   'markdown':       { processTag: false },

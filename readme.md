@@ -260,42 +260,13 @@ sources do.
 from `svultra/kit/assets/icons` are vendored; no `@iconify-icons/*` install
 is needed for the defaults. Pass your own Iconify icons via the `icon` prop.
 
-## Wiring your backend (`svultra/kit/api`) — one example
+## Wiring your backend
 
 There is no single correct way to do authentication, registration, or contact
-forms — every app's backend differs. So the kit doesn't impose a flow: it
-ships **one example** of how you *could* wire one, plus a clean seam to plug in
-whatever you actually use.
-
-The example components (`UserMenu`, and the `LoginForm` / `ContactForm` stubs)
-call back into your app through `svultra/kit/api` — `signOut`, and
-`submitSigninForm` / `submitContactForm` for the forms. By default that import
-resolves to a small stub whose functions just log a warning, so the components
-compile and render out of the box with no backend wired.
-
-If you want to follow this example, point `svultra/kit/api` at your own
-implementation with a Vite alias:
-
-```js
-// vite.config.js
-resolve: {
-  alias: {
-    // exact match: only 'svultra/kit/api' is redirected, not kit/components etc.
-    'svultra/kit/api': path.resolve(__dirname, 'src/api/api.js'),
-  },
-},
-```
-
-Your module then supplies the functions these components call (`signOut`, and
-`submitSigninForm(data)` / `submitContactForm(data)` if you use those forms).
-They import the public `svultra/kit/api` specifier (not the internal `#kit/*`
-one) precisely so a consumer alias can intercept it.
-
-This is just a starting point. The example currently shows a simple token
-sign-in; it does not (yet) include things like "Sign in with Google" or "Sign
-in with LinkedIn" — those may come later. You are free to extend it, swap in a
-different flow, or skip the kit's auth components entirely and build your own —
-the seam is optional, not a contract you must satisfy.
+forms — every app's backend differs, and svUltra doesn't impose one. It
+provides backend-agnostic API helpers — a request wrapper with CSRF handling
+and automatic aborting of superseded requests — and your app builds its own
+endpoint functions on top, against whatever backend you run.
 
 ## Generating routes (`svultra/kit/router/generateRoutes`)
 
@@ -454,7 +425,6 @@ import Toaster, { toastSuccess, toastWarning } from 'svultra/kit/components/Toas
 
 // Single-file utility module — named imports
 import { configStore, personStore } from 'svultra/kit/stores';
-import { signOut }                  from 'svultra/kit/api';
 import { snippetToHtml, dedent }    from 'svultra/snippet';
 
 // Asset path — default import

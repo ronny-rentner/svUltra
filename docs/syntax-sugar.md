@@ -270,7 +270,7 @@ syntaxSugar(replacements, {
     // Escape braces/tags to entities so the contents render as literal text
     'Snippet':        { processTag: true,  escapeCurlyBraces: true },
     // Leave the whole tag and its contents completely untouched
-    'svultra:ignore': { processTag: false, escapeCurlyBraces: true },
+    'svultra:ignore': { processTag: false },
   },
 });
 ```

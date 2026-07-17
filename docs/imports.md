@@ -60,4 +60,4 @@ resolve: {
 },
 ```
 
-This is the seam for app-specific content — a logo, a stores module, an auth backend. The readme's "Wiring your backend" works through it for `svultra/kit/api`. For non-Vite toolchains, use that bundler's equivalent alias option.
+This is the seam for app-specific content — a logo, a stores module, an auth backend. For non-Vite toolchains, use that bundler's equivalent alias option.
