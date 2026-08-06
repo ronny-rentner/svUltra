@@ -11,12 +11,12 @@
     ".":                  "./index.js",
     "./snippet":          "./src/snippet.svelte.js",
     "./kit/actions":      "./src/kit/actions/index.js",
+    "./kit/api":          "./src/kit/api.svelte.js",
     "./kit/components":   "./src/kit/components/index.js",
     "./kit/components/*": "./src/kit/components/*",
     "./kit/assets/icons": "./src/kit/assets/icons/index.js",
     "./kit/assets/*":     "./src/kit/assets/*",
     "./kit/stores":       "./src/kit/stores.js",
-    "./kit/recaptcha":    "./src/kit/recaptcha.js",
     "./kit/router":       "./src/kit/router/index.js",
     "./kit/router/generateRoutes": "./src/kit/router/generateRoutes.js"
   },

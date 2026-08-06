@@ -268,6 +268,21 @@ provides backend-agnostic API helpers — a request wrapper with CSRF handling
 and automatic aborting of superseded requests — and your app builds its own
 endpoint functions on top, against whatever backend you run.
 
+The helpers live in `svultra/kit/api`:
+
+- `apiRequest(endpoint, options, key)` — fetch wrapper returning
+  `{ success, data, error, endpoint }`. Sets the `X-CSRFToken` header from the
+  `csrftoken` cookie on mutating methods, sends credentials, and aborts a
+  still-running request with the same key before starting the new one.
+- `cancelRequest(key)` / `cancelAll()` — cancel requests in flight; all
+  requests are cancelled automatically on page unload.
+- `apiClient(apiFunction)` — wraps an endpoint function for use in a
+  component: exposes a `loading` state while requests run and cancels the
+  request when the component is destroyed.
+- `loadRecaptcha()` / `executeRecaptcha(action)` — load the reCAPTCHA script
+  on demand (site key from `window.config.recaptchaKey`) and produce a token
+  for a form submission.
+
 ## Generating routes (`svultra/kit/router/generateRoutes`)
 
 `Router` takes a `routes` map. You can write it by hand (see the kit demo) or
@@ -425,6 +440,7 @@ import Toaster, { toastSuccess, toastWarning } from 'svultra/kit/components/Toas
 
 // Single-file utility module — named imports
 import { configStore, personStore } from 'svultra/kit/stores';
+import { apiRequest, cancelRequest } from 'svultra/kit/api';
 import { snippetToHtml, dedent }    from 'svultra/snippet';
 
 // Asset path — default import
