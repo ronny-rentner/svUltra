@@ -17,6 +17,7 @@
     "./kit/assets/icons": "./src/kit/assets/icons/index.js",
     "./kit/assets/*":     "./src/kit/assets/*",
     "./kit/stores":       "./src/kit/stores.js",
+    "./kit/vite":         "./src/kit/vite.js",
     "./kit/router":       "./src/kit/router/index.js",
     "./kit/router/generateRoutes": "./src/kit/router/generateRoutes.js"
   },
