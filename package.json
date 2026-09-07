@@ -16,6 +16,7 @@
     "./kit/components/*": "./src/kit/components/*",
     "./kit/assets/icons": "./src/kit/assets/icons/index.js",
     "./kit/assets/*":     "./src/kit/assets/*",
+    "./kit/buildInfo":    "./src/kit/buildInfo.js",
     "./kit/stores":       "./src/kit/stores.js",
     "./kit/vite":         "./src/kit/vite.js",
     "./kit/router":       "./src/kit/router/index.js",

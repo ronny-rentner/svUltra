@@ -354,6 +354,39 @@ These flags are a convention a layout implements. The kit's default layout is em
 and implements none; demo-kit's Layout implements all three. Custom flags can be
 added the same way.
 
+## Build info (`svultra/kit/buildInfo`)
+
+Sometimes it is important to know exactly which version of a live site you are seeing:
+whether the browser has the build just deployed or something stale from a proxy or
+cache, or which build a bug report came from. svUltra stamps every build with a number
+and a time for the page to show, typically in the footer.
+
+The stamp identifies a build on the machine that made it, not a git revision: the file
+is build output, kept out of git, and each machine counts its own builds. The count on
+the live host is the one that identifies what is deployed.
+
+- `src/kit/updateBuildInfo.js` counts `src/build-info.json` up by one and sets the
+  timestamp, creating the file on the first run. Run it before each build, for example
+  as the `prebuild` script:
+
+  ```json
+  "prebuild": "node node_modules/svultra/src/kit/updateBuildInfo.js"
+  ```
+
+- `loadBuildInfo()` returns that file as an object, or `undefined` when there is none,
+  where a plain import would fail to resolve. A component renders either way:
+
+```svelte
+<script>
+  import { loadBuildInfo } from 'svultra/kit/buildInfo';
+  const buildInfo = loadBuildInfo();
+</script>
+
+{#if buildInfo}
+  Last build: {buildInfo.lastBuildTimestamp} — v{buildInfo.buildNumber}
+{/if}
+```
+
 ## State & storage (`svultra/kit/stores`)
 
 Reach for `svultra/kit/stores` instead of touching `localStorage` directly — it
