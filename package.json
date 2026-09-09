@@ -50,11 +50,13 @@
   "license": "ISC",
   "peerDependencies": {
     "svelte": "*",
+    "@picocss/pico": "*",
     "@iconify/svelte": "*",
     "trap-focus-svelte": "*",
     "@zerodevx/svelte-toast": "*"
   },
   "peerDependenciesMeta": {
+    "@picocss/pico": { "optional": true },
     "@iconify/svelte": { "optional": true },
     "trap-focus-svelte": { "optional": true },
     "@zerodevx/svelte-toast": { "optional": true }

@@ -10,10 +10,6 @@
     position: relative;
     overflow: hidden;
     --pico-form-element-spacing-vertical: 0.35rem;
-
-    IconWithLabel {
-      gap: 0.5rem;
-    }
   }
 </style>
 

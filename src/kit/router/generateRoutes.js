@@ -41,19 +41,22 @@ export default function generateRoutesPlugin(userOptions = {}) {
         ignoreInitial: true
       });
 
-      watcher.on('add', async (file) => {
+      // Runs are chained in event order and never overlap, so the last event's run writes last
+      let chain = Promise.resolve();
+
+      watcher.on('add', (file) => {
         logger.info(`Page added: ${file}`);
-        await regenerateRoutesAndReload(server, file, 'added');
+        chain = chain.then(() => regenerateRoutesAndReload(server, file, 'added'));
       });
 
-      watcher.on('unlink', async (file) => {
+      watcher.on('unlink', (file) => {
         logger.info(`Page deleted: ${file}`);
-        await regenerateRoutesAndReload(server, file, 'deleted');
+        chain = chain.then(() => regenerateRoutesAndReload(server, file, 'deleted'));
       });
 
-      watcher.on('change', async (file) => {
+      watcher.on('change', (file) => {
         logger.info(`Page updated: ${file}`);
-        await regenerateRoutesAndReload(server, file, 'modified');
+        chain = chain.then(() => regenerateRoutesAndReload(server, file, 'modified'));
       });
     }
   };
@@ -107,14 +110,15 @@ export default function generateRoutesPlugin(userOptions = {}) {
 
 // Helper function to generate routes using relative paths
 async function generateRoutes(dir, options, commonDir, baseRoute = '') {
-  const files = await fs.readdir(dir);
+  // Dirents carry the type, so no stat per entry that could race a file being renamed away
+  const entries = await fs.readdir(dir, { withFileTypes: true });
   const routes = {};
 
-  for (const file of files) {
+  for (const entry of entries) {
+    const file = entry.name;
     const filePath = path.join(dir, file);
-    const stats = await fs.stat(filePath);
 
-    if (stats.isDirectory() && options.nestedRoutes) {
+    if (entry.isDirectory() && options.nestedRoutes) {
       Object.assign(routes, await generateRoutes(filePath, options, commonDir, `${baseRoute}/${file}`));
     } else {
       const extname = path.extname(file);

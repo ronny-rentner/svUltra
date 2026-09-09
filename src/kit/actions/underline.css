@@ -1,0 +1,34 @@
+/* The action marks its element with the `underline--magical` class. Importing the action
+   pulls this file into the app's CSS bundle, so the rules ship only where the effect is
+   used; app stylesheets can still override them. */
+
+@keyframes underlineAnimateRight {
+  from { right: 100%; }
+  to { right: -5%; }
+}
+
+.underline--magical {
+  position: relative;
+
+  &::before {
+    content: "";
+    transform: skew(-28deg) translateX(4%) rotate(-2deg);
+    background-image: linear-gradient(120deg, #33C6C8 0%, #047878 100%);
+    background-repeat: no-repeat;
+    background-position: 0 88%;
+    background-size: 100% 0.6rem;
+    z-index: -1;
+    position: absolute; /* Position the pseudo-element absolutely */
+    top: 0;
+    left: 0;
+    right: 100%;
+    bottom: 0; /* Cover the entire element */
+    transition: background-size .25s ease-in;
+    animation: underlineAnimateRight 0.5s forwards 0.25s; /* Trigger animation */
+
+  }
+
+  &:hover {
+    background-size: 100% 1rem;
+  }
+}
