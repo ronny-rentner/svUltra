@@ -260,47 +260,6 @@ sources do.
 from `svultra/kit/assets/icons` are vendored; no `@iconify-icons/*` install
 is needed for the defaults. Pass your own Iconify icons via the `icon` prop.
 
-## Hero banner (`HeroBanner`)
-
-A full-viewport picture with the page's headline on top, for a home page.
-The page supplies the words; the component takes the picture, switches the nav to its
-contrast styling while it is shown, and adds a scroll hint pointing at the section below.
-
-```svelte
-<script>
-  import { HeroBanner, Main } from 'svultra/kit/components';
-  import picture from '@assets/hero.webp';
-</script>
-
-<Main>
-  <HeroBanner image={picture} scrollTo="#features">
-    {#snippet headline()}Headline{/snippet}
-    {#snippet subheadline()}Subheadline.{/snippet}
-    <a role="button" href="/start">Get started</a>
-  </HeroBanner>
-
-  <section id="features">…</section>
-</Main>
-```
-
-`headline` and `subheadline` are snippets, so they can carry markup; the children are
-the buttons. Props: `image`, a URL; `scrollTo`, the `#id` of the section the scroll hint
-leads to; `contrast`, default `true`, sets `pageConfig.contrast` while the hero is
-mounted. Other attributes go to the `section`.
-
-What suits the picture is styled from the page, as with any component: `.hero-content` is
-the text block, at the top left, `.image > div` the layer over the picture, dimmed in dark
-mode by default:
-
-```svelte
-<style>
-  HeroBanner {
-    & .hero-content { max-width: 28rem; }
-    & .image > div { background: linear-gradient(to right, rgba(255, 255, 255, 0.4), transparent 60%); }
-  }
-</style>
-```
-
 ## Wiring your backend
 
 There is no single correct way to do authentication, registration, or contact
