@@ -25,5 +25,6 @@ The project targets Svelte 5; some parts still use Svelte 4 features (a runes mi
 - **Imports** — ES modules; external dependencies first, then internal modules; the logger import comes last.
 - **Logging** — use the scoped logger: `const log = createScopedLogger('module-name', 'info')`; levels are trace/debug/info/warn/error.
 - **CSS** — avoid classes where possible; a single component's scope is usually small enough to style by element selector, and nested CSS styles its child elements and components (svUltra's component-styles). Add a class only when needed for dynamic state. Reuse Pico variables and existing components (e.g. `Toasts`) before inventing styles.
+- **CSS, strict** — a component is styled by itself and by its parent, through the component selector. No CSS custom properties beyond the ones PicoCSS defines: a component does not invent `--my-knob` for a parent to set. No overrides of a component from a global stylesheet: `app.css` styles elements, the theme and the page shell, and never reaches into a component.
 - **Formatting** — 2-space indentation; component order: script, style, markup. No ESLint/Prettier config.
 - **Error handling** — try/catch with logging; preprocessors return the original content on error (file processing logged at debug, failures at error).

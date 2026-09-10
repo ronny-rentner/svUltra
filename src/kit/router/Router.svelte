@@ -199,6 +199,15 @@
         !target.hasAttribute('download') &&
         target.getAttribute('target', '') !== '_blank') {
 
+      // A link to a fragment of the page we are on stays with the browser: it scrolls to
+      // the element and updates the hash without a reload. The resolved properties are
+      // used, so `#id` and `/current-path#id` are both recognised.
+      if (target.hash &&
+          target.pathname === window.location.pathname &&
+          target.search === window.location.search) {
+        return;
+      }
+
       // Get the full href and remove the origin part
       const href = target.getAttribute('href');
       const path = href.replace(window.location.origin, '');

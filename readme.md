@@ -260,6 +260,60 @@ sources do.
 from `svultra/kit/assets/icons` are vendored; no `@iconify-icons/*` install
 is needed for the defaults. Pass your own Iconify icons via the `icon` prop.
 
+## Hero banner (`HeroBanner`)
+
+A full-viewport picture with the page's headline on top, for a home page. The page
+supplies the words, the component the picture and a scroll hint pointing at the section
+below.
+
+```svelte
+<script>
+  import { HeroBanner, Main } from 'svultra/kit/components';
+  import picture from '@assets/hero.webp';
+</script>
+
+<Main>
+  <HeroBanner image={picture} scrollTo="#features">
+    {#snippet headline()}Headline{/snippet}
+    {#snippet subheadline()}Subheadline.{/snippet}
+    <a role="button" href="/start">Get started</a>
+  </HeroBanner>
+
+  <section id="features">…</section>
+</Main>
+```
+
+`headline` and `subheadline` are snippets, so they can carry markup; the children are the
+buttons. `image` is a URL, `scrollTo` the `#id` the scroll hint leads to — without it there
+is no hint.
+
+Attributes go to the text block, the part a page adjusts, and the `image:` and `section:`
+prefixes reach the picture and the section around it:
+
+```svelte
+<HeroBanner {image} class="narrow" image:class="dimmed" section:aria-label="Intro">
+```
+
+### Contrast for the header over the picture
+
+A full-viewport picture runs behind the site's header, and a header styled for the page
+background can become unreadable on it. The `pageConfig` the Router provides carries a
+`contrast` flag for that, and the page sets it, because whether the header overlays the
+picture is a property of the site's layout, not of this component:
+
+```svelte
+<script>
+  import { getContext, onDestroy } from 'svelte';
+
+  const pageConfig = getContext('pageConfig');
+  pageConfig.contrast = true;
+  onDestroy(() => { pageConfig.contrast = false; });
+</script>
+```
+
+What the layout does with the flag is the layout's own business — the starter's
+`Layout.svelte` passes it to the nav, which switches its links to `--pico-contrast`.
+
 ## Wiring your backend
 
 There is no single correct way to do authentication, registration, or contact

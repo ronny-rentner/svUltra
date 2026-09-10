@@ -3,30 +3,18 @@
    used; app stylesheets can still override them. */
 
 @keyframes underlineAnimateRight {
-  from { right: 100%; }
-  to { right: -5%; }
+  from { background-size: 0% 0.6rem; }
+  to { background-size: 100% 0.6rem; }
 }
 
 .underline--magical {
-  position: relative;
-
-  &::before {
-    content: "";
-    transform: skew(-28deg) translateX(4%) rotate(-2deg);
-    background-image: linear-gradient(120deg, #33C6C8 0%, #047878 100%);
-    background-repeat: no-repeat;
-    background-position: 0 88%;
-    background-size: 100% 0.6rem;
-    z-index: -1;
-    position: absolute; /* Position the pseudo-element absolutely */
-    top: 0;
-    left: 0;
-    right: 100%;
-    bottom: 0; /* Cover the entire element */
-    transition: background-size .25s ease-in;
-    animation: underlineAnimateRight 0.5s forwards 0.25s; /* Trigger animation */
-
-  }
+  background-image: linear-gradient(120deg, #33C6C8 0%, #047878 100%);
+  background-repeat: no-repeat;
+  background-position: 0 88%;
+  background-size: 100% 0.6rem;
+  transition: background-size .25s ease-in;
+  /* `both`, so the delay shows the from-state instead of the full stripe */
+  animation: underlineAnimateRight 0.5s both 0.25s;
 
   &:hover {
     background-size: 100% 1rem;
