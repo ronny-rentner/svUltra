@@ -35,10 +35,19 @@
       background: rgba(0, 0, 0, 0.5);
     }
 
+    /* Holds the text on the same column as the page below */
+    > div {
+      @mobile {
+        align-self: flex-end;
+        margin-bottom: 15vh;
+      }
+    }
+
     hgroup {
       /* Positioned to paint above the ::before layer */
       position: relative;
       z-index: 1;
+      max-width: 40rem;
 
       animation: flyIn 0.5s ease-out forwards;
       opacity: 0; /* Start invisible */
@@ -46,8 +55,6 @@
 
       @mobile {
         padding-inline: 1rem;
-        align-self: flex-end;
-        margin-bottom: 15vh;
       }
 
       h1 {
@@ -55,20 +62,19 @@
         text-align: left;
         position: relative;
         display: inline-block;
-        max-width: 36rem;
       }
 
       p {
         font-size: 120%;
         line-height: 125%;
+        font-weight: bold;
         text-align: left;
-        margin-block: 0.75rem;
-        max-width: 36rem;
+        margin-block: 1.5rem;
       }
 
       /* The buttons */
       div {
-        margin-top: 1.5rem;
+        margin-top: 2.5rem;
         opacity: 0; /* Start with the element hidden */
         animation: fadeIn 1s forwards;
 
@@ -152,15 +158,17 @@
 </style>
 
 <section style='background-image: url({image});' {...sectionRest}>
-  <hgroup class:container={1} {...rest}>
-    <h1>{render headline()}</h1>
-    {if subheadline}
-      <p>{render subheadline()}</p>
-    {/if}
-    {if children}
-      <div>{render children()}</div>
-    {/if}
-  </hgroup>
+  <div class="container">
+    <hgroup {...rest}>
+      <h1>{render headline()}</h1>
+      {if subheadline}
+        <p>{render subheadline()}</p>
+      {/if}
+      {if children}
+        <div>{render children()}</div>
+      {/if}
+    </hgroup>
+  </div>
   {if scrollTo}
     <a href={scrollTo}><span></span></a>
   {/if}

@@ -1,8 +1,5 @@
 # svUltra TODO
 
-- The kit hardcodes the site's nav bar height: `HeroBanner.svelte` uses `calc(100vh - 6rem)`
-  and `calc(30rem + 6rem)`. Only the layout or the page knows that height. To discuss.
-
 - Structural pseudo-classes in a scoped style count elements a child component renders.
   Verified in carbon.berlin's `Home.svelte`: `section:nth-of-type(2)` styled the page's first
   own section, because `HeroBanner`'s `<section>` counts as the first, and
