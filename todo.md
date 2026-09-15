@@ -15,3 +15,9 @@
   `Dialog.svelte:132` `max-width: var(--max-width, unset)` and `Main.svelte:14`
   `min-height: calc(100vh - var(--page-full-height-offset, 12.5rem))`. The strict CSS rule in
   `AGENTS.md` forbids that shape. Research and clean up.
+
+- `Main.svelte` has no full-width mode. `class:container={1}` is the class-merge hack to keep
+  the class past the spread, not a switch: a page cannot turn the container off, and
+  `container={0}` lands as a plain attribute. Give it a real prop, `container = true`, so a
+  landing page can span the viewport; until then a page undoes `max-width` and `padding` by
+  hand (aylinschaer.de's `Landing.svelte`).
