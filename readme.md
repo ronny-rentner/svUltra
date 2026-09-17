@@ -260,6 +260,19 @@ sources do.
 from `svultra/kit/assets/icons` are vendored; no `@iconify-icons/*` install
 is needed for the defaults. Pass your own Iconify icons via the `icon` prop.
 
+## Accordions (`accordion`)
+
+`use:accordion` animates a `<details>` panel. The element immediately after its
+`<summary>` holds the answer. Opening an ordinary accordion leaves focus where it is;
+Tab and Shift+Tab follow the page's normal order.
+
+`use:accordion={{ trapFocus: true }}` opts into trapping focus inside the open panel,
+as used by the user menu. Closing or removing the panel releases the trap.
+
+The action adds `.accordion`; its `accordion.css` handles clipping, summary spacing
+and the closing arrow. General Pico colour and focus fixes live in the application's
+always-loaded `app.css`, as in [the demo](demo/src/styles/app.css).
+
 ## Hero banner (`HeroBanner`)
 
 A full-viewport picture with the page's headline on top, for a home page. The page

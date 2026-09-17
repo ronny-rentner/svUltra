@@ -7,25 +7,26 @@ function outerHeight(el) {
   return el.getBoundingClientRect().height + parseFloat(style.marginTop) + parseFloat(style.marginBottom);
 }
 
-//NOTE: Not a real accordion but a drop down
-
-//TODO: Rename to something more fitting like dropdownanimation.js
+// Animate the element immediately following the summary of a <details> element.
 export function accordion(node, options = {}) {
   let animation = null;
   let isClosing = false;
-  let isExpanding = false;
   let timeoutId = null;
-  const duration = options.duration || 300; // Default duration 300 ms if not provided
+  let focusTrap = null;
+  const duration = options.duration || 300;
   const summary = node.querySelector(options.trigger || 'summary');
   const content = summary.nextElementSibling;
 
-  // Ensure the content panel is focusable
-  content.setAttribute('tabindex', '-1');
+  // Limit clipping and Pico's animation adjustments to panels using this action.
+  node.classList.add('accordion');
 
-  // Full height including the children's own margins. scrollHeight drops margins that
-  // collapse out of the panel, which is what makes the slide jump at the ends. A leaf
-  // panel (no element children, e.g. a bare <p>) has no such margins, so scrollHeight
-  // is already correct there.
+  // Only trapped panels need a focus target when they contain no controls.
+  if (options.trapFocus) {
+    content.setAttribute('tabindex', '-1');
+  }
+
+  // Include direct children's vertical margins in the expanded height.
+  // Text-only panels, such as a bare <p>, use their own scrollHeight.
   const fullHeight = () => content.children.length
     ? [...content.children].reduce((h, c) => h + outerHeight(c), 0)
     : content.scrollHeight;
@@ -34,7 +35,7 @@ export function accordion(node, options = {}) {
     e.preventDefault();
     if (isClosing || !node.open) {
       open();
-    } else if (isExpanding || node.open) {
+    } else {
       shrink();
     }
   }
@@ -45,6 +46,14 @@ export function accordion(node, options = {}) {
     }
   }
 
+  function onToggle() {
+    // Callers also close details directly, without running the closing animation.
+    if (!node.open && focusTrap) {
+      focusTrap.destroy();
+      focusTrap = null;
+    }
+  }
+
   function shrink() {
     isClosing = true;
 
@@ -52,8 +61,7 @@ export function accordion(node, options = {}) {
       animation.cancel();
     }
 
-    // Collapse the panel's own top/bottom margins along with its height, so they don't
-    // stay full-size through the slide and pop away at the end.
+    // Collapse the panel's vertical margins with its height to avoid a spacing jump when it closes.
     const cs = getComputedStyle(content);
     node.classList.add('closing');
 
@@ -77,8 +85,6 @@ export function accordion(node, options = {}) {
   }
 
   function expand() {
-    isExpanding = true;
-
     if (animation) {
       animation.cancel();
     }
@@ -94,7 +100,6 @@ export function accordion(node, options = {}) {
     });
 
     animation.onfinish = () => onAnimationFinish(true);
-    animation.oncancel = () => isExpanding = false;
   }
 
   function onAnimationFinish(open) {
@@ -102,33 +107,41 @@ export function accordion(node, options = {}) {
     node.classList.remove('closing');
     animation = null;
     isClosing = false;
-    isExpanding = false;
     if (!open) {
       content.style.height = '0px';
     } else {
       content.style.height = 'auto';
-      //content.style.border = '1px red solid';
-      trapFocus(content);
-      content.focus();
-      //console.log('focus', content, content.tabIndex, document.activeElement);
-      //setTimeout(() => content.querySelector('a')[0].focus());
+      // Reopening during a close keeps the existing focus trap.
+      if (options.trapFocus && !focusTrap) {
+        focusTrap = trapFocus(content);
+      }
     }
   }
 
   summary.addEventListener('click', onClick);
   document.addEventListener('keydown', onKeyDown);
+  node.addEventListener('toggle', onToggle);
 
   return {
     destroy() {
       summary.removeEventListener('click', onClick);
       document.removeEventListener('keydown', onKeyDown);
+      node.removeEventListener('toggle', onToggle);
+
+      // Release the action's styling hooks when the panel stops being animated.
+      node.classList.remove('accordion', 'closing');
+
+      // Removing an open panel must release its document-level focus listener.
+      if (focusTrap) {
+        focusTrap.destroy();
+      }
 
       // Cancel any ongoing animation
       if (animation) {
         animation.cancel();
       }
 
-      // Cancel any outstanding timeout
+      // Cancel the scheduled expansion frame.
       if (timeoutId) {
         window.cancelAnimationFrame(timeoutId);
       }

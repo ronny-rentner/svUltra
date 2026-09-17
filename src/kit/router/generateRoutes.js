@@ -3,6 +3,9 @@ import path from 'path';
 import chokidar from 'chokidar';
 import { createLogger } from 'vite';
 
+// Use Vite's logger for consistent logging style
+const logger = createLogger();
+
 export default function generateRoutesPlugin(userOptions = {}) {
   const defaultOptions = {
     pagesDir: './src/pages',
@@ -14,34 +17,28 @@ export default function generateRoutesPlugin(userOptions = {}) {
 
   const options = { ...defaultOptions, ...userOptions };
 
-  // Variables to hold resolved paths, set once in configResolved
+  // configResolved initializes these paths before the server watcher starts.
   let pagesDir;
   let outputFilePath;
   let commonDir;
-
-  // Use Vite's logger for consistent logging style
-  const logger = createLogger();
 
   return {
     name: 'generate-routes-plugin',
 
     async configResolved(config) {
-      // Resolve paths once during configuration
       pagesDir = path.resolve(config.root, options.pagesDir);
       outputFilePath = path.resolve(config.root, options.outputFile);
       commonDir = getCommonDirectory(pagesDir, outputFilePath);
 
-      // Initial route generation
       await generateAndWriteRoutes();
     },
 
     configureServer(server) {
-      // Use chokidar to watch for changes, additions, and deletions in `pages` directory
       const watcher = chokidar.watch(pagesDir, {
         ignoreInitial: true
       });
 
-      // Runs are chained in event order and never overlap, so the last event's run writes last
+      // Serialize scans so an older scan cannot overwrite the result of a newer event.
       let chain = Promise.resolve();
 
       watcher.on('add', (file) => {
@@ -62,7 +59,14 @@ export default function generateRoutesPlugin(userOptions = {}) {
   };
 
   async function regenerateRoutesAndReload(server, file, action) {
-    const hasChanges = await generateAndWriteRoutes(); // Adjusted to return a boolean indicating changes
+    let hasChanges;
+    try {
+      hasChanges = await generateAndWriteRoutes();
+    } catch (error) {
+      // Keep the last route file and let the next watcher event retry after a scan failure.
+      logger.error(`Failed to regenerate routes: ${error.message}`);
+      return;
+    }
 
     if (hasChanges) {
       // Invalidate the module cache for the generated routes file
@@ -71,13 +75,11 @@ export default function generateRoutesPlugin(userOptions = {}) {
         server.moduleGraph.invalidateModule(mod);
       }
 
-      // Log route regeneration and action taken on the file
       logger.info(`Routes regenerated due to file ${action}: ${file}`, { timestamp: true });
 
       // Trigger a full page reload to reflect new routes
       server.ws.send({ type: 'full-reload', path: '*' });
     } else {
-      // Log that no routes changed and no reload was necessary
       logger.info(`No route changes detected from file ${action}: ${file}`);
     }
   }
@@ -95,23 +97,29 @@ export default function generateRoutesPlugin(userOptions = {}) {
 
       if (existingContent === routeFileContent) {
         logger.info(`No changes in routes; skipping file write.`);
-        return false; // Indicate no changes
+        return false;
       }
 
       await fs.writeFile(outputFilePath, routeFileContent);
       logger.info(`Routes generated and written to: ${outputFilePath}`, { timestamp: true });
-      return true; // Indicate changes were made
+      return true;
     } catch (error) {
       logger.error(`Failed to write routes file: ${error.message}`);
-      return false; // Assume no changes on error
+      return false;
     }
   }
 }
 
-// Helper function to generate routes using relative paths
 async function generateRoutes(dir, options, commonDir, baseRoute = '') {
-  // Dirents carry the type, so no stat per entry that could race a file being renamed away
-  const entries = await fs.readdir(dir, { withFileTypes: true });
+  // Read entry types with the directory listing to avoid a separate stat for each path.
+  const entries = await fs.readdir(dir, { withFileTypes: true }).catch(error => {
+    // A listed subdirectory can disappear before recursion; a missing pages root is an error.
+    if (error.code === 'ENOENT' && baseRoute) {
+      logger.warn(`Page directory disappeared during route generation: ${dir}`);
+      return [];
+    }
+    throw error;
+  });
   const routes = {};
 
   for (const entry of entries) {

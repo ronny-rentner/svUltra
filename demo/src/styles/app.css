@@ -41,7 +41,7 @@
 
 /* LIGHT THEME OVERRIDES */
 
-/* Need to mention 'not dark', otherwise it does not override Pico built in styles */
+/* Match Pico's light-theme selector specificity so these values take precedence. */
 :root:not([data-theme="dark"]), [data-theme="light"] {
   /* Light theme colors */
   /*
@@ -106,7 +106,7 @@
 /* GENERAL SIZING */
 /******************/
 
-/* We use the font-size to define a base size for each screen size */
+/* Scale rem-based text and spacing through the root font size at each breakpoint. */
 
 /* TODO: use CSS preprocessor to not hardcode pixels twice */
 @media (max-width: 1024px) {
@@ -115,7 +115,6 @@
   }
 }
 
-/* This is the default */
 @media (min-width: 1024px) {
   :root {
     --pico-font-size: 15px;
@@ -128,10 +127,6 @@
   }
 }
 
-/* Replacement defined in vite.config.js:
- * ['@media large',   '@media (min-width: 1536px)'],
-   ['@large',         '@media (min-width: 1536px)'],
- */
 @media (min-width: 1536px) {
   :root {
     --pico-font-size: 17px;
@@ -161,7 +156,7 @@ html > body > header {
   /* Hash navigation lands below the sticky demo header. */
   scroll-padding-top: 5rem;
 
-  /* Smallest screen size we support */
+  /* Keep the layout at least 360px wide on narrower viewports. */
   min-width: 360px;
 }
 
@@ -301,7 +296,17 @@ article.accordion {
 /* PICO CSS BUGFIXES */
 /*********************/
 
+details:not(.dropdown) {
+  /* Use the same summary text color in the open and closed states. */
+  --pico-accordion-open-summary-color: var(--pico-accordion-close-summary-color);
+  /* Mouse clicks retain focus after hover ends. */
+  --pico-accordion-active-summary-color: var(--pico-accordion-close-summary-color);
 
+  /* Draw the keyboard focus outline inside the summary's bounds. */
+  & > summary:focus-visible:not([role]) {
+    outline-offset: calc(-1 * var(--pico-outline-width));
+  }
+}
 
 [role="search"] input[role="combobox"]:not(:last-child) {
   border-top-left-radius: 0;
@@ -400,13 +405,13 @@ a[disabled] {
     background-position: 0 88%;
     background-size: 100% 0.6rem;
     z-index: -1;
-    position: absolute; /* Position the pseudo-element absolutely */
+    position: absolute;
     top: 0;
     left: 0;
     right: 100%;
-    bottom: 0; /* Cover the entire element */
+    bottom: 0;
     transition: background-size .25s ease-in;
-    animation: underlineAnimateRight 0.5s forwards 0.25s; /* Trigger animation */
+    animation: underlineAnimateRight 0.5s forwards 0.25s;
 
   }
 
