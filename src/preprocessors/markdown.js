@@ -1,5 +1,6 @@
 import { readFile } from 'fs/promises';
 import { resolve, dirname, basename, extname } from 'path';
+import matter from 'gray-matter';
 import { marked, Marked } from 'marked';
 import MagicString from 'magic-string';
 import { createScopedLogger } from '../logger.js';
@@ -117,6 +118,11 @@ function renderMarkdown(markdownText, useAccordion = false) {
   return html;
 }
 
+function renderMarkdownComponent(markdownText) {
+  // Standalone Markdown files can carry metadata; only the content becomes Svelte markup.
+  return renderMarkdown(matter(markdownText).content);
+}
+
 /**
  * Extract pattern and flags from the string and return them separately.
  * The pattern is expected to be in the format: /pattern/flags
@@ -226,6 +232,9 @@ function markdownPreprocessor(options = {}) {
     async markup({ content, filename }) {
       if (filename.includes('node_modules') && !filename.includes('node_modules/svultra/')) {
         return;
+      }
+      if (extname(filename) === '.md') {
+        return { code: renderMarkdownComponent(content), map: null };
       }
 
       log.debug('Processing file', filename);

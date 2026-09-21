@@ -74,20 +74,21 @@
       window.dispatchEvent(beforeNavigateEvent);
 
       window.history.pushState(history?.state, '', path);
-      //updateComponent();
-      //TODO: Explain why we are using an event instead of calling directly
-      window.dispatchEvent(new Event('popstate'));
+      window.dispatchEvent(new Event('routechange'));
     }
   }
 
   let routes = {};
   let _currentComponent = null;
+  let currentRoutePath = $state();
+  let currentRouteSuffix = $state('');
 
   function resolveRoute(path) {
-    if (routes[path]) return routes[path];
+    if (routes[path]) return { component: routes[path], routePath: path, routeSuffix: '' };
 
     /* wildcard matches like '/guide/*' */
     let best = null;
+    let bestPath = null;
     let bestLen = -1;
 
     for (const key in routes) {
@@ -97,19 +98,27 @@
         if (base.length > bestLen) {
           bestLen = base.length;
           best = routes[key];
+          bestPath = base;
         }
       }
     }
 
-    return best || routes['*'];
+    return {
+      component: best || routes['*'],
+      routePath: bestPath || path,
+      routeSuffix: bestPath ? path.slice(bestPath.length).replace(/^\//, '') : ''
+    };
 
   }
 
 
-  async function updateComponent() {
+  async function updateComponent(event) {
     const path = getCurrentPath();
     //let component = routes[path] || routes['*'];
-    let component = resolveRoute(path);
+    let { component, routePath, routeSuffix } = resolveRoute(path);
+    // Wildcard pages receive the matched route and remaining path without parsing the URL themselves.
+    currentRoutePath = routePath;
+    currentRouteSuffix = routeSuffix;
     if (!isSvelteComponent(component)) {
       console.error('Not a Svelte component: ', component, path);
       component = routes['*'];
@@ -141,7 +150,8 @@
 
         currentComponent.update(_ => {
           //_currentComponent = component
-          document.getElementById('app').scrollTo(0, 0);
+          // Browser history traversal restores its own scroll position.
+          if (!(event instanceof PopStateEvent)) window.scrollTo(0, 0);
           // Switch to the new component
           return loadedComponent.default;
         });
@@ -157,10 +167,13 @@
         throw error;
       }
     } else {
-      //console.log('component did not change, leaving it alone');
+      // Keep the pathname current when the same page handles a different URL.
+      currentPath.set(path);
+      _currentPath = path;
     }
   }
 
+  window.addEventListener('routechange', updateComponent);
   window.addEventListener('popstate', updateComponent);
 </script>
 
@@ -257,7 +270,7 @@
     <main class="container" style="height:100vh"></main>
   {else if $currentComponent}
     {@const Component=$currentComponent}
-    <Component {meta}  />
+    <Component {meta} routePath={currentRoutePath} routeSuffix={currentRouteSuffix} />
   {else}
     <main class="container"><h1>Error: Component is not defined or failed to load.</h1></main>
   {/if}

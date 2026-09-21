@@ -387,6 +387,36 @@ Defaults: `pagesDir: './src/pages'`, `outputFile: './src/generatedRoutes.svelte.
 `nestedRoutes: true`, `urlPrefix: ''` — all resolved against the Vite root, so
 they work for any consumer.
 
+## Markdown directory indexes
+
+`generateMarkdownIndexPlugin` writes an `index.js` inside each configured Markdown directory:
+
+```js
+// vite.config.js
+import generateMarkdownIndexPlugin from 'svultra/kit/markdown/generateIndex';
+
+// First entry in plugins:
+generateMarkdownIndexPlugin({ inputDirs: ['./src/markdown/articles'] }),
+```
+
+`inputDirs` is an array of paths relative to the Vite root. Each index contains its directory's
+immediate `.md` files, sorted by filename with numeric ordering (`1`, `2`, `10`).
+Generation runs at startup for development and builds. During development, Vite's
+watcher regenerates the index when a Markdown file is added, changed or removed.
+Unchanged output is not rewritten.
+
+Pages import the plain data:
+
+```js
+import { entries } from '../markdown/articles/index.js';
+```
+
+Each entry contains `id` (filename without `.md`), `title` (the first sentence of
+the first prose paragraph) and `excerpt` (the following prose, limited to 200 Unicode
+characters at a word boundary). Markdown formatting is removed. Empty files have
+empty titles and excerpts. Display punctuation such as an ellipsis belongs to the page.
+The index contains no images, route URLs or article imports.
+
 ## pageConfig
 
 `pageConfig` is a reactive object passed to the page and the layout via Svelte

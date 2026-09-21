@@ -2,8 +2,8 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
+import { EventEmitter } from 'node:events';
 import { setImmediate } from 'node:timers/promises';
-import chokidar from 'chokidar';
 
 import generateRoutesPlugin from '../src/kit/router/generateRoutes.js';
 
@@ -73,15 +73,14 @@ test('reports a watcher scan failure and processes the next change', async (t) =
   t.mock.method(fs, 'readFile', async () => 'export const routes = {\n\n};\n');
   const write = t.mock.method(fs, 'writeFile', async () => {});
   const error = t.mock.method(console, 'error', () => {});
-  const events = new Map();
-  t.mock.method(chokidar, 'watch', () => ({ on(event, listener) { events.set(event, listener); } }));
+  const watcher = new EventEmitter();
   const send = t.mock.fn();
   const plugin = generateRoutesPlugin();
   await plugin.configResolved({ root });
-  plugin.configureServer({ moduleGraph: { getModuleById: () => null }, ws: { send } });
+  plugin.configureServer({ watcher, moduleGraph: { getModuleById: () => null }, ws: { send } });
 
-  events.get('change')(path.join(pagesDir, 'Home.svelte'));
-  events.get('add')(path.join(pagesDir, 'Home.svelte'));
+  watcher.emit('change', path.join(pagesDir, 'Home.svelte'));
+  watcher.emit('add', path.join(pagesDir, 'Home.svelte'));
   // All file operations above are mocked promises; drain the queued scans before asserting.
   await setImmediate();
 

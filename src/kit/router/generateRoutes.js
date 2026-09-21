@@ -1,6 +1,5 @@
 import { promises as fs } from 'fs';
 import path from 'path';
-import chokidar from 'chokidar';
 import { createLogger } from 'vite';
 
 // Use Vite's logger for consistent logging style
@@ -34,29 +33,34 @@ export default function generateRoutesPlugin(userOptions = {}) {
     },
 
     configureServer(server) {
-      const watcher = chokidar.watch(pagesDir, {
-        ignoreInitial: true
-      });
-
       // Serialize scans so an older scan cannot overwrite the result of a newer event.
       let chain = Promise.resolve();
 
-      watcher.on('add', (file) => {
-        logger.info(`Page added: ${file}`);
-        chain = chain.then(() => regenerateRoutesAndReload(server, file, 'added'));
+      const update = (file, action, message) => {
+        // Vite's watcher covers the project; route generation only reacts to page components.
+        if (!isPageFile(file)) return;
+        logger.info(`Page ${message}: ${file}`);
+        chain = chain.then(() => regenerateRoutesAndReload(server, file, action));
+      };
+
+      server.watcher.on('add', (file) => {
+        update(file, 'added', 'added');
       });
 
-      watcher.on('unlink', (file) => {
-        logger.info(`Page deleted: ${file}`);
-        chain = chain.then(() => regenerateRoutesAndReload(server, file, 'deleted'));
+      server.watcher.on('unlink', (file) => {
+        update(file, 'deleted', 'deleted');
       });
 
-      watcher.on('change', (file) => {
-        logger.info(`Page updated: ${file}`);
-        chain = chain.then(() => regenerateRoutesAndReload(server, file, 'modified'));
+      server.watcher.on('change', (file) => {
+        update(file, 'modified', 'updated');
       });
     }
   };
+
+  function isPageFile(file) {
+    const relative = path.relative(pagesDir, file);
+    return relative && !relative.startsWith('..') && !path.isAbsolute(relative) && path.extname(file) === '.svelte';
+  }
 
   async function regenerateRoutesAndReload(server, file, action) {
     let hasChanges;

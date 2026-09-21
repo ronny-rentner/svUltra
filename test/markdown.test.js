@@ -36,6 +36,14 @@ test('marks external links with target=_blank', async () => {
   assert.match(out.code, /<a href="https:\/\/example\.com"[^>]*target="_blank"/);
 });
 
+test('renders standalone markdown as Svelte markup', async () => {
+  const source = '---\ntitle: From frontmatter\n---\n\n# Hello\n\nText with **bold**.';
+  const out = await run(source, path.join(fixtures, 'article.md'));
+  assert.match(out.code, /<h1>Hello<\/h1>/);
+  assert.match(out.code, /<strong>bold<\/strong>/);
+  assert.doesNotMatch(out.code, /From frontmatter/);
+});
+
 test('skips files under node_modules', async () => {
   const pp = markdownPreprocessor({ path: fixtures });
   const out = await pp.markup({ content: '<markdown file="sample.md" />', filename: '/proj/node_modules/x.svelte' });

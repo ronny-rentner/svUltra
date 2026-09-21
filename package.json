@@ -19,6 +19,7 @@
     "./kit/buildInfo":    "./src/kit/buildInfo.js",
     "./kit/stores":       "./src/kit/stores.js",
     "./kit/vite":         "./src/kit/vite.js",
+    "./kit/markdown/generateIndex": "./src/kit/markdown/generateIndex.js",
     "./kit/router":       "./src/kit/router/index.js",
     "./kit/router/generateRoutes": "./src/kit/router/generateRoutes.js"
   },
@@ -64,10 +65,12 @@
   "dependencies": {
     "chalk": "*",
     "estree-walker": "*",
+    "gray-matter": "*",
     "loglevel": "*",
     "magic-string": "*",
     "marked": "*",
-    "postcss-selector-parser": "*"
+    "postcss-selector-parser": "*",
+    "sbd": "*"
   },
   "devDependencies": {
     "@anthropic-ai/claude-code": "*",
@@ -76,7 +79,6 @@
     "@iconify/icons-ph": "*",
     "@iconify/svelte": "*",
     "@sveltejs/vite-plugin-svelte": "*",
-    "chokidar": "*",
     "postcss-nested": "*",
     "svelte": "*",
     "svelte-preprocess": "*",
