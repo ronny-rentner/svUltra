@@ -17,6 +17,8 @@
   }
   main.isLoading {
     opacity: 0 !important;
+    /* Match Router.svelte's fadeTimeout() (400 ms): the old content fades out
+       before the loading overlay appears if loading is still in progress. */
     transition: opacity 0.4s linear;
   }
 </style>

@@ -1,6 +1,7 @@
 <script context="module">
   import { tick, setContext } from 'svelte';
   import { writable, get } from 'svelte/store';
+  import { SvelteSet } from 'svelte/reactivity';
 
   // Sets the page title and description. The title runs through
   // window.config.titleTemplate: `{title}` is the given title (falling back to
@@ -40,6 +41,16 @@
   // Internal copy of currentPath to make it easier to get it
   let _currentPath = $state();
 
+  const pendingLoads = new SvelteSet();
+  let pendingScroll = $state();
+
+  // Register a load; the returned function removes that registration on completion or teardown.
+  export function startLoad() {
+    const finishLoad = () => pendingLoads.delete(finishLoad);
+    pendingLoads.add(finishLoad);
+    return finishLoad;
+  }
+
   let componentElement;
 
   let initialized = $state(false);
@@ -47,8 +58,9 @@
   export const base = getBaseUrl();
   export const baseUrl = base;
 
-  export function getCurrentPath() {
-    let path = window.location.pathname;
+  //Extract the current URL path from source. If no source was given, use the current URL path from window as a fallback.
+  export function getCurrentPath(source) {
+    let path = source ? new URL(source.destination.url).pathname : window.location.pathname;
     if (base && path.startsWith(base)) {
       path = path.slice(base.length);
     }
@@ -62,7 +74,7 @@
 
   export function navigate(path) {
     const base = getBaseUrl();
-    console.log('navigate()', path);
+    //console.log('navigate()', path);
     if (!path.startsWith(base)) {
       // Construct full URL if we got only the URL path.
       path = base + path;
@@ -74,21 +86,18 @@
       window.dispatchEvent(beforeNavigateEvent);
 
       window.history.pushState(history?.state, '', path);
-      window.dispatchEvent(new Event('routechange'));
+      window.dispatchEvent(new Event('popstate'));
     }
   }
 
   let routes = {};
   let _currentComponent = null;
-  let currentRoutePath = $state();
-  let currentRouteSuffix = $state('');
 
   function resolveRoute(path) {
-    if (routes[path]) return { component: routes[path], routePath: path, routeSuffix: '' };
+    if (routes[path]) return routes[path];
 
     /* wildcard matches like '/guide/*' */
     let best = null;
-    let bestPath = null;
     let bestLen = -1;
 
     for (const key in routes) {
@@ -98,27 +107,25 @@
         if (base.length > bestLen) {
           bestLen = base.length;
           best = routes[key];
-          bestPath = base;
         }
       }
     }
 
-    return {
-      component: best || routes['*'],
-      routePath: bestPath || path,
-      routeSuffix: bestPath ? path.slice(bestPath.length).replace(/^\//, '') : ''
-    };
+    return best || routes['*'];
 
   }
 
 
   async function updateComponent(event) {
-    const path = getCurrentPath();
+    // Leave non-interceptable navigation to the browser; initial loading has no event.
+    if (event && !event.canIntercept) return;
+    // Delay scrolling for both component replacements and URL changes within the same component.
+    // Both branches leave readiness to the $effect below: after rendering and all registered
+    // loads finish, it resolves pendingScroll so the browser can scroll.
+    if (event) delayHistoryScroll(event);
+    const path = getCurrentPath(event);
     //let component = routes[path] || routes['*'];
-    let { component, routePath, routeSuffix } = resolveRoute(path);
-    // Wildcard pages receive the matched route and remaining path without parsing the URL themselves.
-    currentRoutePath = routePath;
-    currentRouteSuffix = routeSuffix;
+    let component = resolveRoute(path);
     if (!isSvelteComponent(component)) {
       console.error('Not a Svelte component: ', component, path);
       component = routes['*'];
@@ -129,6 +136,7 @@
       // otherwise child layout changes might trigger re-loading the same component
       _currentComponent = component
 
+      const finishLoad = startLoad();
       // Show the loading overlay
       //console.log('isLoading true');
       isLoading.set(true);
@@ -150,8 +158,6 @@
 
         currentComponent.update(_ => {
           //_currentComponent = component
-          // Browser history traversal restores its own scroll position.
-          if (!(event instanceof PopStateEvent)) window.scrollTo(0, 0);
           // Switch to the new component
           return loadedComponent.default;
         });
@@ -164,17 +170,40 @@
         console.error('Error loading ', path, component);
         console.error(error);
         isLoading.set(false);
+        // Reject this navigation without scrolling when its page import fails.
+        if (pendingScroll && pendingScroll.event === event) {
+          pendingScroll.reject(error);
+          pendingScroll = undefined;
+        }
         throw error;
+      } finally {
+        finishLoad();
       }
     } else {
-      // Keep the pathname current when the same page handles a different URL.
+      // Keep the pathname current when the same page (component) handles a different URL.
+      // This update lets existing Loaders register new loads before the post-render $effect runs.
       currentPath.set(path);
       _currentPath = path;
     }
   }
 
-  window.addEventListener('routechange', updateComponent);
-  window.addEventListener('popstate', updateComponent);
+  // Delay the browser's default scrolling until the post-render effect signals readiness.
+  function delayHistoryScroll(event) {
+    const { promise, resolve, reject } = Promise.withResolvers();
+    // Stop and superseding navigations both abort the signal and reject this wait.
+    event.signal.addEventListener('abort', () => reject(), { once: true });
+    event.intercept({
+      // Default after-transition scrolling runs when the readiness promise resolves.
+      handler: () => promise
+    });
+    pendingScroll = { event, resolve, reject };
+  }
+
+  navigation.addEventListener('navigate', updateComponent);
+  if (import.meta.hot) {
+    // Remove this module's navigation handler before hot replacement registers a new one.
+    import.meta.hot.dispose(() => navigation.removeEventListener('navigate', updateComponent));
+  }
 </script>
 
 <script>
@@ -234,6 +263,15 @@
     updateComponent();
   });
 
+  $effect(() => {
+    // Check after rendering, when new or updated Loaders have registered through their pre-effects.
+    // Resolve pendingScroll for either branch of updateComponent(), allowing the browser to scroll.
+    if (pendingScroll && pendingLoads.size === 0) {
+      pendingScroll.resolve();
+      pendingScroll = undefined;
+    }
+  });
+
   onMount(() => {
     document.body.addEventListener('click', handleLinkClick);
   });
@@ -253,6 +291,7 @@
     //Only after 400 ms we do show the LoadingOverlay when navigating between pages.
     //The hope is that it never actually takes so long to load the new page.
     //In those 400 ms we fade out the old page.
+    //Keep this delay aligned with Main.svelte's 0.4s opacity transition.
     return new Promise(resolve => setTimeout(resolve, 400));
   }
 
@@ -270,7 +309,7 @@
     <main class="container" style="height:100vh"></main>
   {else if $currentComponent}
     {@const Component=$currentComponent}
-    <Component {meta} routePath={currentRoutePath} routeSuffix={currentRouteSuffix} />
+    <Component {meta} />
   {else}
     <main class="container"><h1>Error: Component is not defined or failed to load.</h1></main>
   {/if}

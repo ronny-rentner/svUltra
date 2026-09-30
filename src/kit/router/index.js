@@ -5,6 +5,7 @@ export {
   preloaded,
   currentComponent,
   isLoading,
+  startLoad,
   currentPath,
   base,
   baseUrl,

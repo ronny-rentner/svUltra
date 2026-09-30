@@ -116,9 +116,13 @@ function extractMarkdownMetadata(source, titleLength, descriptionLength) {
   // Frontmatter syntax belongs to gray-matter; Markdown extraction only sees article content.
   const { data, content } = matter(source);
   if (!content.trim()) return;
-  const text = collectText(content, titleLength, descriptionLength);
+  const tokens = marked.lexer(content);
+  const firstToken = tokens.find(token => token.type !== 'space');
+  // A leading heading supplies its full title, without sentence or length truncation.
+  const heading = firstToken?.type === 'heading' ? collectText([firstToken], Infinity) : undefined;
+  const text = collectText(tokens, (heading?.length ?? titleLength) + descriptionLength);
   const sentence = sbd.sentences(text, { abbreviations: ABBREVIATIONS })[0] ?? '';
-  const generatedTitle = sentence.length <= titleLength ? sentence : limitText(sentence, titleLength);
+  const generatedTitle = heading ?? (sentence.length <= titleLength ? sentence : limitText(sentence, titleLength));
   const generatedExcerpt = limitText(text.slice(generatedTitle.length).trim(), descriptionLength);
   const metadata = {
     title: data.title ?? generatedTitle,
@@ -128,13 +132,12 @@ function extractMarkdownMetadata(source, titleLength, descriptionLength) {
   return metadata;
 }
 
-function collectText(source, titleLength, descriptionLength) {
+function collectText(tokens, textLength) {
   let text = '';
   let skipNextText = false;
   const enoughText = Symbol('enoughText');
-  const textLength = titleLength + descriptionLength;
   try {
-    marked.walkTokens(marked.lexer(source), token => {
+    marked.walkTokens(tokens, token => {
       if (text.length >= textLength) throw enoughText;
       if (token.type === 'image') {
         skipNextText = true;
@@ -144,7 +147,8 @@ function collectText(source, titleLength, descriptionLength) {
         skipNextText = false;
         return;
       }
-      if (token.type === 'space') text += ' ';
+      // Keep words separated across paragraph gaps and hard line breaks.
+      if (token.type === 'space' || token.type === 'br') text += ' ';
       if (token.type === 'text' || token.type === 'codespan') text += token.text;
       if (text.length >= textLength) throw enoughText;
     });

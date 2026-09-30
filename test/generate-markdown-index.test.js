@@ -158,6 +158,61 @@ test('extracts Markdown index metadata', async (t) => {
         date: unquotedFrontmatterDate,
       },
     },
+    // A leading heading supplies the whole title; the next line starts the excerpt.
+    {
+      id: '19',
+      source: '# Better decisions. Stronger teams.\nStart with a shared view of cash.',
+      expected: {
+        id: '19',
+        title: 'Better decisions. Stronger teams.',
+        excerpt: 'Start with a shared view of cash.',
+      },
+    },
+    {
+      id: '20',
+      source: '---\ndate: "2026-09-21"\n---\n\n# **Finance** for [growing teams](https://example.com). A practical guide to planning together.\n\nStart with shared goals. Review them every month.',
+      // The length limit applies to titles inferred from prose, not explicit headings.
+      options: { titleLength: 15 },
+      expected: {
+        id: '20',
+        title: 'Finance for growing teams. A practical guide to planning together.',
+        excerpt: 'Start with shared goals. Review them every month.',
+        date: '2026-09-21',
+      },
+    },
+    {
+      id: '21',
+      source: '---\ntitle: Custom title\ndescription: Custom description\n---\n\n# Better decisions. Stronger teams.\n\nStart with shared goals.',
+      expected: { id: '21', title: 'Custom title', excerpt: 'Custom description' },
+    },
+    {
+      id: '22',
+      source: 'An opening sentence. More context.\n\n# A later heading\n\nDetails follow.',
+      expected: {
+        id: '22',
+        title: 'An opening sentence.',
+        excerpt: 'More context. A later heading Details follow.',
+      },
+    },
+    {
+      id: '23',
+      source: 'Better decisions. Stronger teams.\n===\n\nStart with shared goals.',
+      expected: {
+        id: '23',
+        title: 'Better decisions. Stronger teams.',
+        excerpt: 'Start with shared goals.',
+      },
+    },
+    {
+      id: '24',
+      // Backslash and two-space line endings both separate the adjacent sentences.
+      source: '# A clear plan\n\nA customer wrote to us.\\\nThe bank requested a plan.  \nWe supplied realistic figures.',
+      expected: {
+        id: '24',
+        title: 'A clear plan',
+        excerpt: 'A customer wrote to us. The bank requested a plan. We supplied realistic figures.',
+      },
+    },
   ];
   for (const input of inputs) {
     await t.test(input.id, async (t) => {

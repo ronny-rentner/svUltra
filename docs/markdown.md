@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Markdown preprocessor allows you to import markdown content directly into your Svelte components. This is useful for documentation, blog posts, or any text-heavy content that's easier to write and maintain in markdown format.
+The Markdown preprocessor allows you to insert and render markdown content directly into your Svelte components. This is useful for documentation, blog posts, or any text-heavy content that's easier to write and maintain in markdown format.
 
 ## How It Works
 
@@ -30,87 +30,80 @@ Or load it from a file:
 <markdown file="about.md" />
 ```
 
-The `about.md` file:
+## Configuration
 
-```markdown
-# About Us
+In `svelte.config.js`:
 
-We are a **fantastic** team of developers working on *amazing* projects.
+```javascript
+import { svultraPreprocess } from 'svultra';
 
-## Our Mission
-
-- Create great software
-- Help others succeed
-- Have fun along the way
+export default {
+  preprocess: svultraPreprocess({
+    markdown: {
+      path: './src/markdown',
+      breaks: true, // Render single newlines as line breaks
+    },
+  }),
+};
 ```
 
-Will be rendered as HTML in your Svelte component.
+By default, Markdown files are loaded relative to the Svelte file. `path` specifies a different base directory.
+
+Options inside `markdown`, other than `path`, are passed to the [Marked library](https://marked.js.org/using_advanced#options).
 
 ## Default file
 
-A self-closing tag with no `file` and no body loads a `.md` file named after the component:
+`<markdown />` uses the Svelte component's filename with a `.md` extension:
 
 ```svelte
 <!-- in Guide.svelte → loads Guide.md -->
 <markdown />
 ```
 
+## Markdown files as components
+
+A `.md` file can also be the source of a whole Svelte component. The Markdown preprocessor generates its markup; Svelte compiles that markup into a component.
+
+In `svelte.config.js`, this is enabled by `extensions: ['.svelte', '.md']`.
+
+The resulting component can be imported and rendered like any other Svelte component:
+
+```svelte
+<script>
+  import Article from '../markdown/articles/1.md';
+</script>
+
+<Article />
+```
+
+Frontmatter is stripped from `.md` component sources before compilation. Inclusions through `<markdown file="…">` render the complete file.
+
+For overview lists, the [directory index generator](../readme.md#markdown-directory-indexes) provides `title`, `excerpt`, and optional `date` fields.
+
+## Loading components on demand
+
+[Vite's glob imports](https://vite.dev/guide/features.html#glob-import) let a page load individual Markdown components from a directory on demand:
+
+```javascript
+const articles = import.meta.glob('../markdown/articles/*.md');
+```
+
+`articles` maps filenames to import functions. Each function returns a promise for a module whose `default` export is the compiled Svelte component.
+
 ## FAQ mode
 
-With `mode="faq"`, each `## Heading` in the markdown becomes an `<Accordion>` — the heading is the summary, the content below it the panel:
+With `mode="faq"`, each `## Heading` and its following content become an `<Accordion>`:
 
 ```svelte
 <markdown mode="faq" file="faq.md" />
 ```
 
-Requires an `Accordion` component in scope.
+An `Accordion` component must be available in the Svelte page. It receives the heading as its `header` snippet and the answer as `children`.
 
 ## Find and replace
 
-For file content, `pattern` and `replacement` run a regex replace over the rendered HTML. The pattern is written `/regex/flags`:
+For file inclusions, `pattern` and `replacement` apply a regex replacement to the rendered HTML. The pattern uses `/regex/flags` syntax.
 
-```svelte
-<markdown file="terms.md" pattern="/2024/g" replacement="2026" />
-```
+## Custom link renderer
 
-## Configuration
-
-You can specify a base path for markdown files:
-
-```javascript
-markdownPreprocessor({
-  path: './src/markdown'  // Base path for markdown files
-})
-```
-
-Paths in the `file` attribute then resolve against that base:
-
-```svelte
-<markdown file="about.md" />          <!-- ./src/markdown/about.md -->
-<markdown file="../legal/terms.md" /> <!-- ./src/legal/terms.md -->
-```
-
-## Usage in Config
-
-```javascript
-import { markdownPreprocessor } from 'svUltra';
-
-export default {
-  preprocess: [
-    // other preprocessors...
-    markdownPreprocessor({
-      path: './src/markdown'  // Base path for markdown files
-    }),
-    // other preprocessors...
-  ],
-};
-```
-
-## Notes
-
-- Markdown is rendered at build time, not runtime
-- Braces (`{` `}`) inside code spans and blocks are escaped, so Svelte doesn't read them as expressions
-- External links get `target="_blank"`; root-relative links (`/…`) stay internal
-- You can apply CSS styling to the rendered HTML
-- Integrates well with other preprocessors for consistent styling
-- Helps maintain a clean separation between content and presentation
+HTTP(S) URLs and protocol-relative URLs (`//example.com`) receive `target="_blank"`.

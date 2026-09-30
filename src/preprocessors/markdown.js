@@ -25,7 +25,7 @@ const renderer = {
   codespan: (token) => escapeBraces(defaultRenderer.codespan(token)),
   code:     (token) => escapeBraces(defaultRenderer.code(token)),
 
-  link({ href, title, text }) {
+  link({ href, title, tokens }) {
     let isInternal = false;
 
     //console.log('LINK', href);
@@ -35,9 +35,9 @@ const renderer = {
       return url.replace(/^(https?:\/\/)?(www\.)?/, '').split('/')[0];
     }
 
-    // Check if the href is relative or matches any internal domain
+    // Only HTTP(S) and protocol-relative URLs open separately, unless their domain is internal.
     if (
-      href.startsWith('/') ||
+      !/^(https?:)?\/\//i.test(href) ||
       internalDomains.some(domain => {
         const linkDomain = getDomain(href);
         return linkDomain === domain;
@@ -57,7 +57,8 @@ const renderer = {
       out += ' target="_blank"';
     }
 
-    out += `>${text}</a>`;
+    // Process escapes and formatting within the link label.
+    out += `>${this.parser.parseInline(tokens)}</a>`;
 
     return out;
   },
@@ -81,7 +82,8 @@ const accordionExtension = {
     }
   },
   renderer(token) {
-    const body = marked.parse(token.text);
+    // FAQ bodies inherit the options of the surrounding Markdown parse.
+    const body = marked.parse(token.text, this.parser.options);
     return `<Accordion>
   {#snippet header()}${token.header}{/snippet}
   ${body}
@@ -105,22 +107,22 @@ markedWithAccordion.use({ renderer, extensions: [accordionExtension] });
 
 //marked.use(accordionExtension);
 
-function renderMarkdown(markdownText, useAccordion = false) {
+function renderMarkdown(markdownText, useAccordion = false, options) {
   let html;
   //console.log('RENDER');
   if (useAccordion) {
     log.debug('useAccordion mode: ', useAccordion);
-    html = markedWithAccordion.parse(markdownText)
+    html = markedWithAccordion.parse(markdownText, options)
   } else {
-    html = defaultMarked.parse(markdownText);
+    html = defaultMarked.parse(markdownText, options);
   }
   //log.debug('Rendered HTML', html);
   return html;
 }
 
-function renderMarkdownComponent(markdownText) {
+function renderMarkdownComponent(markdownText, options) {
   // Standalone Markdown files can carry metadata; only the content becomes Svelte markup.
-  return renderMarkdown(matter(markdownText).content);
+  return renderMarkdown(matter(markdownText).content, false, options);
 }
 
 /**
@@ -173,7 +175,7 @@ const tagRegex = /<markdown((?:\s+[^>]*?)?)(?:\s*\/>|>([\s\S]*?)<\/markdown>)/g;
  * and generates a source map. If no file attribute is provided and the tag has
  * no body, it uses the current file's basename with .md extension.
  */
-async function processMarkdownTags(content, magicString, filename, rootPath, deps) {
+async function processMarkdownTags(content, magicString, filename, rootPath, deps, markedOptions) {
   for (const match of content.matchAll(tagRegex)) {
     const [fullMatch, attrsStr, body] = match;
     const attrs = parseAttrs(attrsStr ?? '');
@@ -184,7 +186,7 @@ async function processMarkdownTags(content, magicString, filename, rootPath, dep
     // Body mode: <markdown>…inline source…</markdown>
     if (body !== undefined && !attrs.file) {
       const bodyText = dedent(body);
-      htmlContent = renderMarkdown(bodyText, attrs.mode === 'faq');
+      htmlContent = renderMarkdown(bodyText, attrs.mode === 'faq', markedOptions);
       log.debug('Replaced inline markdown body');
     } else {
       let filePath;
@@ -205,7 +207,7 @@ async function processMarkdownTags(content, magicString, filename, rootPath, dep
 
       try {
         const markdownContent = await readFile(resolvedFilePath, 'utf-8');
-        htmlContent = renderMarkdown(markdownContent, attrs.mode === 'faq');
+        htmlContent = renderMarkdown(markdownContent, attrs.mode === 'faq', markedOptions);
 
         // Apply regex replacement if 'pattern' and 'replacement' attributes are present
         if (attrs.pattern && attrs.replacement) {
@@ -225,7 +227,8 @@ async function processMarkdownTags(content, magicString, filename, rootPath, dep
 }
 
 function markdownPreprocessor(options = {}) {
-  const { path: rootPath } = options;
+  // Keep path local; pass the remaining options to Marked without changing its shared defaults.
+  const { path: rootPath, ...markedOptions } = options;
 
   return {
     name: 'markdown',
@@ -234,14 +237,14 @@ function markdownPreprocessor(options = {}) {
         return;
       }
       if (extname(filename) === '.md') {
-        return { code: renderMarkdownComponent(content), map: null };
+        return { code: renderMarkdownComponent(content, markedOptions), map: null };
       }
 
       log.debug('Processing file', filename);
       const magicString = new MagicString(content);
       const deps = [];
 
-      await processMarkdownTags(content, magicString, filename, rootPath, deps);
+      await processMarkdownTags(content, magicString, filename, rootPath, deps, markedOptions);
 
       log.debug('Finished processing file', filename);
       return {

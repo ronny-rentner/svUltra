@@ -260,6 +260,15 @@ sources do.
 from `svultra/kit/assets/icons` are vendored; no `@iconify-icons/*` install
 is needed for the defaults. Pass your own Iconify icons via the `icon` prop.
 
+## Loading content (`Loader`)
+
+`Loader` retains the current view while its replacement loads. It takes a `next`
+view object and renders it through the `children(loaded)` snippet. The view's optional
+`load()` function imports a Svelte module; its default export becomes `loaded.loadedComponent`.
+
+The view's optional `onload()` callback runs when Loader accepts that view, including
+views without `load()`. It runs before the DOM update and is skipped for superseded loads.
+
 ## Accordions (`accordion`)
 
 `use:accordion` animates a `<details>` panel. The element immediately after its
@@ -411,10 +420,13 @@ Pages import the plain data:
 import { entries } from '../markdown/articles/index.js';
 ```
 
-Each entry contains `id` (filename without `.md`), `title` (the first sentence of
-the first prose paragraph) and `excerpt` (the following prose, limited to 200 Unicode
-characters at a word boundary). Markdown formatting is removed. Empty files have
-empty titles and excerpts. Display punctuation such as an ellipsis belongs to the page.
+Each entry contains `id` (filename without `.md`), `title` and `excerpt`.
+Frontmatter `title` and `description` take precedence. Otherwise, a leading Markdown
+heading supplies the complete title; without one, the first sentence supplies the title,
+limited to `titleLength` (default 100 characters) at a word boundary. The generated
+excerpt starts after that heading or inferred title and is limited to `descriptionLength`
+(default 250 characters) at a word boundary. Markdown formatting is removed; files
+with empty bodies are skipped. Display punctuation such as an ellipsis belongs to the page.
 The index contains no images, route URLs or article imports.
 
 ## pageConfig

@@ -61,7 +61,8 @@ div {
 </style>
 
 {snippet overlay()}
-  <div class:showLogo class:partial>
+  <!-- Forward attributes and component styles to the overlay element. -->
+  <div class:showLogo class:partial {...rest}>
     {if showLogo}
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 35 40">
         <path

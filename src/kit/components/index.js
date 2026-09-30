@@ -6,5 +6,6 @@ export { default as Icon }             from './IconWithLabel.svelte';
 export { default as IconWithLabel }    from './IconWithLabel.svelte';
 export { default as Link }             from './LinkWithIcon.svelte';
 export { default as LinkWithIcon }     from './LinkWithIcon.svelte';
+export { default as Loader }           from './Loader.svelte';
 export { default as LoadingIndicator } from './LoadingIndicator.svelte';
 export { default as Main }             from './Main.svelte';
