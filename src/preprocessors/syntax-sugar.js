@@ -6,7 +6,7 @@ import { createScopedLogger } from '../logger.js';
 
 const log = createScopedLogger('syntax-sugar', 'info');
 
-// Svelte 4-style `slot="name"` and `let:prop` rewritten to the Svelte 5
+// Bare `slot`, Svelte 4-style `slot="name"` and `let:prop` rewritten to the Svelte 5
 // named-snippet form. AST-based: nested same-name tags and `>` inside
 // attribute expressions are resolved by the parser, which a regex over the
 // raw source cannot do. Runs after the string replacements, which turn the
@@ -14,11 +14,12 @@ const log = createScopedLogger('syntax-sugar', 'info');
 //   <tag slot="x" ...>body</tag>  -> {#snippet x()}<tag ...>body</tag>{/snippet}
 //   <tag slot="x" ... />          -> {#snippet x()}<tag ... />{/snippet}
 //   <svelte:fragment slot="x">body</svelte:fragment> -> {#snippet x()}body{/snippet}
+//   <header slot>body</header>   -> {#snippet header()}body{/snippet}
 //   <Tag let:a>body</Tag>         -> <Tag>{#snippet children(a)}body{/snippet}</Tag>
 // slot= and let: combine: the let: names become the snippet parameters, in
 // order of appearance; `let:name={alias}` passes the alias pattern through.
 function rewriteSlotSugar(content, filename) {
-  if (!content.includes('slot=') && !content.includes('let:')) {
+  if (!content.includes('slot') && !content.includes('let:')) {
     return content;
   }
 
@@ -41,7 +42,7 @@ function rewriteSlotSugar(content, filename) {
 
       const slotAttr = node.attributes.find(attr =>
         attr.type === 'Attribute' && attr.name === 'slot' &&
-        Array.isArray(attr.value) && attr.value[0]?.type === 'Text');
+        (attr.value === true || Array.isArray(attr.value) && attr.value[0]?.type === 'Text'));
       const letDirectives = node.attributes.filter(attr => attr.type === 'Let');
 
       if (!slotAttr && !letDirectives.length) {
@@ -57,14 +58,15 @@ function rewriteSlotSugar(content, filename) {
         : directive.name
       ).join(', ');
 
-      if (slotAttr && node.name === 'svelte:fragment') {
+      if (slotAttr && (slotAttr.value === true || node.name === 'svelte:fragment')) {
         // the fragment exists only to carry slot=, so drop the wrapper tags
+        const slotName = slotAttr.value === true ? node.name : slotAttr.value[0].data;
         const openEnd = content.indexOf('>', Math.max(...node.attributes.map(attr => attr.end))) + 1;
         const closeStart = content.lastIndexOf('</', node.end - 2);
         if (closeStart < node.start) {
           return; // self-closing fragment: nothing to unwrap
         }
-        ms.overwrite(node.start, openEnd, `{#snippet ${slotAttr.value[0].data}(${params})}`);
+        ms.overwrite(node.start, openEnd, `{#snippet ${slotName}(${params})}`);
         ms.overwrite(closeStart, node.end, '{/snippet}');
         hasTransformed = true;
         return;

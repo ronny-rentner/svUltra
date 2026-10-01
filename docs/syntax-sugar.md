@@ -110,6 +110,20 @@ The same shorthand idea extended to directives:
 <Box style:color={color} />
 ```
 
+### Named slot shorthand
+
+A bare `slot` uses the tag name as the slot name and passes only its contents:
+
+```svelte
+<Card>
+  <header slot>Title</header>
+</Card>
+```
+
+This is equivalent to `<svelte:fragment slot="header">Title</svelte:fragment>`
+inside `Card`. The wrapper is not rendered, so HTML attributes belong on elements
+inside it. Use `slot="name"` when the tag itself should remain part of the content.
+
 ### Svelte 4 slots and `let:` props
 
 Svelte 5 replaces named slots and slot props with snippets. The preprocessor
@@ -186,6 +200,7 @@ as they are.
 | `<C bind:{v} />` | `<C bind:v={v} />`      |
 | `<C style:{c} />`| `<C style:c={c} />`     |
 | `<tag slot="x">…</tag>` | `{#snippet x()}<tag>…</tag>{/snippet}` |
+| `<name slot>…</name>` | `{#snippet name()}…{/snippet}` |
 | `<C let:a>…</C>` | `<C>{#snippet children(a)}…{/snippet}</C>` |
 
 ## Adding your own shortcuts

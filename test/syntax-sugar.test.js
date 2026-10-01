@@ -181,6 +181,27 @@ test('rewrites <svelte:fragment slot="name"> by dropping the wrapper (default)',
   );
 });
 
+test('bare slot uses the tag name and drops the wrapper', () => {
+  assert.equal(
+    run('<Accordion><header slot>Question?</header></Accordion>', undefined),
+    '<Accordion>{#snippet header()}Question?{/snippet}</Accordion>'
+  );
+});
+
+test('bare slot preserves nested same-name elements', () => {
+  assert.equal(
+    run('<Card><header slot>A<header>B</header>C</header></Card>', undefined),
+    '<Card>{#snippet header()}A<header>B</header>C{/snippet}</Card>'
+  );
+});
+
+test('bare slot accepts let: parameters like svelte:fragment', () => {
+  assert.equal(
+    run('<List><item slot let:value={row}><b>{row}</b></item></List>', undefined),
+    '<List>{#snippet item(row)}<b>{row}</b>{/snippet}</List>'
+  );
+});
+
 test('slot rewrite preserves other attributes on the component (default)', () => {
   assert.equal(
     run('<Card><Btn slot="action" type="submit" disabled>OK</Btn></Card>', undefined),
