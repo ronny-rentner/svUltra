@@ -1,7 +1,10 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { SourceMap } from 'node:module';
+import { preprocess } from 'svelte/compiler';
 
 import attributeTransformer from '../src/preprocessors/attribute-transformer.js';
+import { svultraPreprocess } from '../index.js';
 
 // Custom rules on top of the built-in defaults (tooltip, placement)
 const extraAttrs = [
@@ -84,6 +87,25 @@ test('skips files under node_modules', () => {
   const pp = attributeTransformer({ attributes: extraAttrs });
   const result = pp.markup({ content: input, filename: '/proj/node_modules/x.svelte' });
   assert.equal(result.code, input);
+  assert.deepEqual(result.map.sourcesContent, [input]);
+});
+
+test('preserves third-party source locations through the full preprocessor chain', async () => {
+  const filename = '/project/node_modules/example/Widget.svelte';
+  const content = '<script>let label = "Hello";</script>\n<button tooltip="Keep this attribute">{label}</button>\n<style>button { color: red; }</style>';
+  const result = await preprocess(content, svultraPreprocess({ markdown: {} }), { filename });
+
+  assert.equal(result.code, content);
+  assert.ok(result.map, 'unchanged dependencies must retain a sourcemap for the Vite transform');
+  const map = new SourceMap(JSON.parse(result.map.toString()));
+  for (const [line, text] of content.split('\n').entries()) {
+    for (const column of [0, Math.floor(text.length / 2), text.length - 1]) {
+      const entry = map.findEntry(line, column);
+      assert.equal(entry.originalSource, filename);
+      assert.equal(entry.originalLine, line);
+      assert.equal(entry.originalColumn, column);
+    }
+  }
 });
 
 test('processes svultra itself under node_modules', () => {

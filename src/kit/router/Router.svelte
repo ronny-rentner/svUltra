@@ -193,12 +193,22 @@
     // Stop and superseding navigations both abort the signal and reject this wait.
     event.signal.addEventListener('abort', () => reject(), { once: true });
     event.intercept({
-      // Default after-transition scrolling runs when the readiness promise resolves.
-      handler: () => promise
+      scroll: 'manual',
+      handler: async () => {
+        await promise;
+        // Allow event.scroll() to use the browser's saved position after rendering,
+        // then block early restoration on the next navigation.
+        history.scrollRestoration = 'auto';
+        event.scroll();
+        history.scrollRestoration = 'manual';
+      }
     });
     pendingScroll = { event, resolve, reject };
   }
 
+  // Firefox 156.0.1 restores during traversal before the handler finishes, even with
+  // intercept({ scroll: 'manual' }). Set the history policy before new entries inherit it.
+  history.scrollRestoration = 'manual';
   navigation.addEventListener('navigate', updateComponent);
   if (import.meta.hot) {
     // Remove this module's navigation handler before hot replacement registers a new one.

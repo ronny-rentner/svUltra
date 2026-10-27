@@ -2,6 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
+import { compile } from 'svelte/compiler';
 
 import markdownPreprocessor from '../src/preprocessors/markdown.js';
 
@@ -69,6 +70,28 @@ test('renders standalone markdown as Svelte markup', async () => {
   assert.doesNotMatch(out.code, /From frontmatter/);
 });
 
+test('imports relative images in standalone Markdown components', async () => {
+  const out = await run('![First](photo.png)\n\n![Second](../images/photo.png)', 'Article.md');
+  assert.match(out.code, /import \w+ from "\.\/photo\.png\?url"/);
+  assert.match(out.code, /import \w+ from "\.\/\.\.\/images\/photo\.png\?url"/);
+  const compiled = compile(out.code, { filename: 'Article.md' });
+  assert.equal(compiled.warnings.length, 0);
+});
+
+test('preserves remote and absolute image URLs without imports', async () => {
+  for (const href of ['https://example.com/photo.png', '//example.com/photo.png', '/photo.png', 'data:image/png;base64,AA==']) {
+    const out = await run(`![Photo](${href})`, 'Article.md');
+    assert.equal(out.code, `<p><img src="${href}" alt="Photo"></p>\n`);
+  }
+});
+
+test('keeps inline image paths literal and escapes image labels for Svelte', async () => {
+  const out = await run('<markdown>![A "quoted" {label}](photo.png)</markdown>');
+  assert.equal(out.code, '<p><img src="photo.png" alt="A &quot;quoted&quot; &lbrace;label&rbrace;"></p>\n');
+  const compiled = compile(out.code, { filename: 'Test.svelte' });
+  assert.equal(compiled.warnings.length, 0);
+});
+
 test('applies Marked options independently to each preprocessor', async () => {
   const withBreaks = markdownPreprocessor({ path: fixtures, breaks: true });
   const withoutBreaks = markdownPreprocessor({ path: fixtures, breaks: false });
@@ -118,7 +141,7 @@ test('preserves a single literal asterisk without a visible backslash', async ()
     },
     {
       source: '[Wann braucht mein Startup eine&#42;n CFO – und was bis dahin?](https://example.com/interview)',
-      expected: '<a href="https://example.com/interview" target="_blank">Wann braucht mein Startup eine&#42;n CFO – und was bis dahin?</a>',
+      expected: '<a href="https://example.com/interview" target="_blank">Wann braucht mein Startup eine*n CFO – und was bis dahin?</a>',
     },
     {
       source: '[Wann braucht mein Startup eine\\*n CFO – und was bis dahin?](https://example.com/interview)',

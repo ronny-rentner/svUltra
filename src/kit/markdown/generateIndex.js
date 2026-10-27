@@ -129,6 +129,9 @@ function extractMarkdownMetadata(source, titleLength, descriptionLength) {
     excerpt: data.description ?? generatedExcerpt,
   };
   if (data.date) metadata.date = data.date;
+  if (data.tags !== undefined) {
+    metadata.tags = typeof data.tags === 'string' ? data.tags.split(',').map(tag => tag.trim()) : data.tags;
+  }
   return metadata;
 }
 

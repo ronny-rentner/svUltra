@@ -260,6 +260,24 @@ sources do.
 from `svultra/kit/assets/icons` are vendored; no `@iconify-icons/*` install
 is needed for the defaults. Pass your own Iconify icons via the `icon` prop.
 
+## Badges (`Badge`, `Badges`)
+
+`Badge` displays its children as a colored label. Its `color` prop defaults to `red`.
+`Badges` arranges its children in a flex row.
+
+```svelte
+<script>
+  import { Badge, Badges } from 'svultra/kit/components';
+</script>
+
+<Badges>
+  <Badge color="blue">Finance</Badge>
+  <Badge color="green">Leadership</Badge>
+</Badges>
+```
+
+`Badges` uses half of Pico's `--pico-spacing` for its bottom margin and flex `gap`.
+
 ## Loading content (`Loader`)
 
 `Loader` retains the current view while its replacement loads. It takes a `next`
@@ -268,6 +286,17 @@ view object and renders it through the `children(loaded)` snippet. The view's op
 
 The view's optional `onload()` callback runs when Loader accepts that view, including
 views without `load()`. It runs before the DOM update and is skipped for superseded loads.
+
+By default (`translucent={false}`), the current content fades out over 400 ms, revealing
+the page background. With `translucent={true}`, it stays visible beneath a translucent overlay.
+Both modes retain the old content and its layout height until the replacement is ready.
+
+On subsequent loads, the overlay appears after a 400 ms wait; faster loads show no overlay.
+In translucent mode, the backdrop and loading text then fade in together over 400 ms.
+The backdrop uses Pico's `--pico-modal-overlay-background-color` and
+`--pico-modal-overlay-backdrop-filter`; site component styles can override these variables on Loader.
+The overlay covers the viewport and centers its text on screen, including on long, scrolled pages.
+`window.config.loadingDelay` adds the same test delay in milliseconds as Router.
 
 ## Accordions (`accordion`)
 
@@ -392,6 +421,21 @@ import { routes } from './generatedRoutes.svelte.js';
 <Router {routes} {Layout} />
 ```
 
+Router waits until the page and its Loader content have rendered before scrolling.
+Back and forward navigation then restore the browser's saved scroll position.
+
+Loader registers each load synchronously with `startLoad()` before awaiting content and
+releases the registration when it finishes. Router checks these registrations after rendering,
+so it waits for both page imports and content changes within the same page.
+
+Firefox 156.0.1 restored scroll positions before the intercepted navigation handler finished,
+even with `intercept({ scroll: 'manual' })`. Returning to a long list while the shorter article
+was still rendered clipped the saved position to the article's height. Router therefore sets
+`history.scrollRestoration = 'manual'` before subsequent history entries are created.
+After rendering, it temporarily enables `'auto'`, calls `event.scroll()`, then restores `'manual'`.
+The browser retains the saved coordinates. This same path passed the Chrome navigation checks,
+so Router uses it without browser detection.
+
 Defaults: `pagesDir: './src/pages'`, `outputFile: './src/generatedRoutes.svelte.js'`,
 `nestedRoutes: true`, `urlPrefix: ''` — all resolved against the Vite root, so
 they work for any consumer.
@@ -428,6 +472,9 @@ excerpt starts after that heading or inferred title and is limited to `descripti
 (default 250 characters) at a word boundary. Markdown formatting is removed; files
 with empty bodies are skipped. Display punctuation such as an ellipsis belongs to the page.
 The index contains no images, route URLs or article imports.
+
+Frontmatter `tags` is included when present. A string such as `tags: private, work, books`
+is split on commas and each tag is trimmed. YAML lists are preserved unchanged.
 
 ## pageConfig
 
@@ -498,8 +545,34 @@ the live host is the one that identifies what is deployed.
 
 ## State & storage (`svultra/kit/stores`)
 
-Reach for `svultra/kit/stores` instead of touching `localStorage` directly — it
-provides a localStorage-backed Svelte writable:
+`createSyncedState` returns a reactive object or array backed by localStorage:
+
+```js
+import { createSyncedState } from 'svultra/kit/stores';
+
+export const settings = createSyncedState('settings', { appearance: { dark: false } });
+settings.appearance.dark = true;
+```
+
+Components read `settings.appearance.dark` directly and can bind to it with
+`bind:checked={settings.appearance.dark}`. Nested assignments, additions, deletions,
+and array mutations are reactive and saved by a batched Svelte effect.
+
+`createSyncedState(key, initialValue, updateFromLocalStorage = true)` loads saved JSON,
+using `initialValue` when the entry is missing, contains `null`, or cannot be read.
+For an object, the saved data is laid over `initialValue` with `merge`, so a key added
+to `initialValue` later arrives with its initial value for everyone; an array is taken as
+saved. Changes from other tabs replace the root's contents while preserving its reference
+and are not written back, so two tabs never answer each other's storage events; removing
+the key restores `initialValue`. Pass `false` as the third argument to disable incoming
+tab updates while keeping persistence.
+
+Declare shared state once at module scope; synchronization lasts for the browser page's
+lifetime. Use JSON-compatible objects or arrays whose root type stays the same.
+Assign properties or replace nested values directly. The returned value has no
+`subscribe`, `set`, or `update` methods.
+
+`createLocalStorageStore` provides a localStorage-backed Svelte writable:
 
 ```js
 import { createLocalStorageStore } from 'svultra/kit/stores';
@@ -512,13 +585,28 @@ const theme = createLocalStorageStore('theme', { dark: false });
 `createLocalStorageStore(key, initialValue, updateFromLocalStorage = true)`:
 
 - seeds from `localStorage[key]` (JSON-parsed), falling back to `initialValue`
-  when unset or unparseable;
-- writes the JSON-serialized value back on every change;
-- for object values a plain `set`/`update` **deep-merges** into the current value
-  (arrays replace wholesale; wrap a field with `overwrite(value)` to replace
+  when unset or unparseable; saved data is not merged with defaults, and stored `null` is preserved;
+- synchronously persists the initial value and subsequent store notifications,
+  writing only when the serialized value differs from localStorage;
+- `set(value)` replaces the value; `update(fn)` replaces it with the function's result;
+- `update(object)` **deep-merges** into the current object
+  (array fields replace wholesale; wrap a field with `overwrite(value)` to replace
   rather than merge — both `overwrite` and `merge` are exported here);
 - mirrors changes from other tabs via the `storage` event, unless
   `updateFromLocalStorage` is `false`.
+
+Persistence requires a store notification through `set` or `update`; directly
+mutating the value does not notify the store. A binding to a member of its value in a
+component, `bind:value={$draft.name}`, is fine: Svelte compiles the write as
+the mutation followed by `draft.set($draft)`. A write inside a child that
+received a member as a bindable prop is not: `bind:value={value[i]}` in the
+child mutates the object silently, and nothing is saved until another store
+notification. In such a child, reassign the prop after the write so the
+binding passes it up to the component with the store:
+
+```svelte
+<input bind:value={() => value[i], v => { value[i] = v; value = value; }} />
+```
 
 Pre-built stores live in the same module:
 

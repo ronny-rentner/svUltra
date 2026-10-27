@@ -1,5 +1,7 @@
 import { writable } from 'svelte/store';
 
+export { createSyncedState } from './createSyncedState.svelte.js';
+
 //export const personStore = writable(null);
 export const personStore = createLocalStorageStore('person_data', null);
 

@@ -37,6 +37,10 @@ function processNestedRules(rule) {
       if (nestedSelector.startsWith('&')) {
         return `:global(${nestedSelector})`;
       }
+      // A nested selector starting with a combinator means `& > …` in CSS nesting
+      if (/^[>+~]/.test(nestedSelector)) {
+        return `:global(& ${nestedSelector})`;
+      }
       return nestedSelector;
     });
   });
@@ -140,7 +144,10 @@ const processSelectors = (selectors, rule, filename) => {
           // Call processMatchedSelector2 to get the transformed class name
           let newSelector = processMatchedSelector2(componentName, selector, rule, filename);
 
-          if (!globalWrapperStarted) {
+          // Only an enclosing :global() covers this component; an earlier sibling does not.
+          let globalAncestor = node.parent;
+          while (globalAncestor && globalAncestor.value !== ':global') globalAncestor = globalAncestor.parent;
+          if (!globalWrapperStarted && !globalAncestor) {
             newSelector = `:global(${newSelector}`;
             globalWrapperStarted = true;
           }

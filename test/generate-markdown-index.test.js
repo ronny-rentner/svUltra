@@ -213,6 +213,26 @@ test('extracts Markdown index metadata', async (t) => {
         excerpt: 'A customer wrote to us. The bank requested a plan. We supplied realistic figures.',
       },
     },
+    {
+      id: '25',
+      source: '---\ntags: " private, work , Bücher, fractional CFO "\n---\n\n# Tagged article\n\nArticle body.',
+      expected: {
+        id: '25',
+        title: 'Tagged article',
+        excerpt: 'Article body.',
+        tags: ['private', 'work', 'Bücher', 'fractional CFO'],
+      },
+    },
+    {
+      id: '26',
+      source: '---\ntags:\n  - " private "\n  - "work, books"\n  - fractional CFO\n---\n\n# Tagged article\n\nArticle body.',
+      expected: {
+        id: '26',
+        title: 'Tagged article',
+        excerpt: 'Article body.',
+        tags: [' private ', 'work, books', 'fractional CFO'],
+      },
+    },
   ];
   for (const input of inputs) {
     await t.test(input.id, async (t) => {

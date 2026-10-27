@@ -1,7 +1,60 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { SourceMap } from 'node:module';
+import { preprocess } from 'svelte/compiler';
 
 import syntaxSugar from '../src/preprocessors/syntax-sugar.js';
+import { svultraPreprocess } from '../index.js';
+
+function assertSourceLocation(result, original, token) {
+  assert.ok(result.map, 'Syntax Sugar must return a sourcemap');
+  const generatedPrefix = result.code.slice(0, result.code.indexOf(token));
+  const originalPrefix = original.slice(0, original.indexOf(token));
+  assert.ok(result.code.includes(token) && original.includes(token));
+  const entry = new SourceMap(JSON.parse(result.map.toString())).findEntry(
+    generatedPrefix.split('\n').length - 1,
+    generatedPrefix.length - generatedPrefix.lastIndexOf('\n') - 1,
+  );
+  assert.equal(entry.originalLine, originalPrefix.split('\n').length - 1);
+  assert.equal(entry.originalColumn, originalPrefix.length - originalPrefix.lastIndexOf('\n') - 1);
+  assert.equal(entry.originalSource, 'Test.svelte');
+}
+
+test('maps source after inserted annotations through the complete preprocessor chain', async () => {
+  const content = '<script>\n  let { meta } = $props();\n  meta({ title: "Title" });\n</script>\n<p>Original text</p>';
+  const result = await preprocess(content, svultraPreprocess(), { filename: 'Test.svelte' });
+  assertSourceLocation(result, content, 'Original text');
+  const withMarkdown = await preprocess(content, svultraPreprocess({ markdown: {} }), { filename: 'Test.svelte' });
+  assertSourceLocation(withMarkdown, content, '<p>');
+});
+
+test('maps sequential replacements and removed multiline comments to the original source', () => {
+  const content = '/* comment\non two lines */\n{if enabled}<p>Original text</p>{/if}';
+  const result = syntaxSugar([[/\/\*[\s\S]*?\*\//g, ''], ['{#if ', '{#if  ']]).markup({ content, filename: 'Test.svelte' });
+  assertSourceLocation(result, content, 'enabled');
+  assertSourceLocation(result, content, 'Original text');
+});
+
+test('maps slot bodies and following markup after snippet insertion', () => {
+  const content = '<Card><h2 slot="header">Heading</h2></Card>\n<p>Following text</p>';
+  const result = syntaxSugar().markup({ content, filename: 'Test.svelte' });
+  assertSourceLocation(result, content, 'Heading');
+  assertSourceLocation(result, content, 'Following text');
+});
+
+test('preserves source locations inside ignored sections after restoring their placeholders', () => {
+  const content = '{if enabled}\n<markdown>\nKeep {if literal}\n</markdown>\n{/if}';
+  const result = syntaxSugar().markup({ content, filename: 'Test.svelte' });
+  assertSourceLocation(result, content, 'Keep');
+  assertSourceLocation(result, content, 'literal');
+});
+
+test('maps unchanged source and positions after Unicode characters', () => {
+  const content = '<p>😀 Original text</p>';
+  const result = syntaxSugar().markup({ content, filename: 'Test.svelte' });
+  assertSourceLocation(result, content, 'Original text');
+  assert.deepEqual(result.map.sourcesContent, [content]);
+});
 
 function run(content, replacements, filename = 'Test.svelte') {
   const pp = syntaxSugar(replacements);

@@ -62,6 +62,30 @@ const renderer = {
 
     return out;
   },
+
+  image({ href, title, text, tokens }) {
+    if (tokens) {
+      text = this.parser.parseInline(tokens, this.parser.textRenderer);
+    }
+
+    let out;
+
+    // Only standalone Markdown components collect imports for relative images.
+    if (this.options.imageImports && !/^(?:[a-z][a-z\d+.-]*:|\/|#|$)/i.test(href)) {
+      const name = `markdownImage${this.options.imageImports.length}`;
+      this.options.imageImports.push(`import ${name} from ${JSON.stringify(`./${href}?url`)};`);
+      out = `<img src={${name}}`;
+    } else {
+      out = `<img src="${escapeBraces(href.replace(/"/g, '&quot;'))}"`;
+    }
+
+    if (title) {
+      out += ` title="${escapeBraces(title.replace(/"/g, '&quot;'))}"`;
+    }
+
+    out += ` alt="${escapeBraces(text.replace(/"/g, '&quot;'))}">`;
+    return out;
+  },
 };
 
 const accordionExtension = {
@@ -121,8 +145,16 @@ function renderMarkdown(markdownText, useAccordion = false, options) {
 }
 
 function renderMarkdownComponent(markdownText, options) {
+  const imageImports = [];
+
   // Standalone Markdown files can carry metadata; only the content becomes Svelte markup.
-  return renderMarkdown(matter(markdownText).content, false, options);
+  let html = renderMarkdown(matter(markdownText).content, false, { ...options, imageImports });
+
+  if (imageImports.length) {
+    html = `<script>\n${imageImports.join('\n')}\n</script>\n${html}`;
+  }
+
+  return html;
 }
 
 /**

@@ -1,7 +1,7 @@
 <script>
 import Main from './Main.svelte';
 
-let { showLogo = true, showMain = false, partial = false, text = "Loading", ...rest } = $props();
+let { showLogo = true, showMain = false, partial = false, translucent = false, text = "Loading", ...rest } = $props();
 </script>
 
 <style>
@@ -28,6 +28,24 @@ div {
     position: absolute;
     inset: 0;
     background-color: rgba(0, 0, 0, 0.5);
+  }
+
+  &.translucent {
+    background-color: var(--pico-modal-overlay-background-color);
+    backdrop-filter: var(--pico-modal-overlay-backdrop-filter);
+    animation: translucentBackground 0.4s linear;
+
+    h3 {
+      animation: translucentText 0.4s linear;
+    }
+
+    @keyframes translucentBackground {
+      from { background-color: transparent; backdrop-filter: blur(0); }
+    }
+
+    @keyframes translucentText {
+      from { opacity: 0; }
+    }
   }
 
   h3 {
@@ -62,7 +80,7 @@ div {
 
 {snippet overlay()}
   <!-- Forward attributes and component styles to the overlay element. -->
-  <div class:showLogo class:partial {...rest}>
+  <div class:showLogo class:partial class:translucent {...rest}>
     {if showLogo}
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 35 40">
         <path

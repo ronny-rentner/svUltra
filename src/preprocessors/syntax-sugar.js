@@ -1,6 +1,7 @@
 import { walk } from 'estree-walker';
 import { parse } from 'svelte/compiler';
 import MagicString from 'magic-string';
+import { diffChars } from 'diff';
 
 import { createScopedLogger } from '../logger.js';
 
@@ -274,8 +275,23 @@ export default function syntaxSugar(replacements = [], options = {}) {
         }
       }
 
+      // Diff after restoring placeholders so preserved sections map to their original positions too.
+      const mappedContent = new MagicString(content);
+      let originalOffset = 0;
+      for (const change of diffChars(content, modifiedContent)) {
+        if (change.added) {
+          mappedContent.appendLeft(originalOffset, change.value);
+        } else {
+          if (change.removed) {
+            mappedContent.remove(originalOffset, originalOffset + change.value.length);
+          }
+          originalOffset += change.value.length;
+        }
+      }
+
       return {
-        code: modifiedContent,
+        code: mappedContent.toString(),
+        map: mappedContent.generateMap({ source: filename, includeContent: true, hires: true }),
       };
     },
   };

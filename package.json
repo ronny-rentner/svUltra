@@ -64,6 +64,7 @@
   },
   "dependencies": {
     "chalk": "*",
+    "diff": "*",
     "estree-walker": "*",
     "gray-matter": "*",
     "loglevel": "*",

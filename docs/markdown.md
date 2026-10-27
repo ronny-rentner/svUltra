@@ -78,7 +78,9 @@ The resulting component can be imported and rendered like any other Svelte compo
 
 Frontmatter is stripped from `.md` component sources before compilation. Inclusions through `<markdown file="…">` render the complete file.
 
-For overview lists, the [directory index generator](../readme.md#markdown-directory-indexes) provides `title`, `excerpt`, and optional `date` fields.
+Relative Markdown image paths in standalone `.md` components become asset imports resolved relative to that file. Vite includes those images in the build. Remote URLs, absolute paths, and images inside `<markdown>` inclusions remain literal URLs.
+
+For overview lists, the [directory index generator](../readme.md#markdown-directory-indexes) provides `title`, `excerpt`, and optional `date` and `tags` fields.
 
 ## Loading components on demand
 

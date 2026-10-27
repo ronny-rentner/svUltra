@@ -36,7 +36,13 @@ export default function attributeTransformer(config = {}) {
 
   return {
     markup({ content, filename }) {
-      if (filename && filename.includes('node_modules') && !filename.includes('node_modules/svultra/')) return { code: content };
+      if (filename && filename.includes('node_modules') && !filename.includes('node_modules/svultra/')) {
+        // Vite returns skipped dependencies as transform results; preserve their original source locations.
+        return {
+          code: content,
+          map: new MagicString(content).generateMap({ source: filename, includeContent: true, hires: true }),
+        };
+      }
 
       log.debug(`Processing file: ${filename}`);
       let ast;

@@ -21,3 +21,26 @@
   `container={0}` lands as a plain attribute. Give it a real prop, `container = true`, so a
   landing page can span the viewport; until then a page undoes `max-width` and `padding` by
   hand (aylinschaer.de's `Landing.svelte`).
+
+- Hot-reload preprocessor implementation changes. Changing preprocessor code must update
+  rendered output even when the Markdown and Svelte input files have not changed.
+  Use the existing persistent `environment.runner.import(url)` and HMR invalidation.
+  Ensure svUltra's preprocessor sources are handled by the runner rather than externalized
+  to native Node imports. Supply stable async hooks through Svelte's public preprocessor
+  interface; each invocation obtains the current implementation from the runner and calls
+  it. Svelte can retain those hooks without retaining an obsolete implementation.
+  Track which files each preprocessor processes and reads, including `<markdown file="…">`
+  inputs, and which components consume them. When implementation code or its dependencies
+  change, invalidate the affected runner modules and all files processed or read by that
+  preprocessor, then recompile their consuming components. Complete runner invalidation
+  before reprocessing consumers. Accept HMR updates at the integration entry so unrelated
+  modules remain cached. Use public Vite and Svelte APIs; do not patch
+  `@sveltejs/vite-plugin-svelte`, use temporary environments, clear the entire runner cache,
+  or restart the dev server. Keep the existing build preprocessing path.
+  Verify with a directly imported `.md` file and a component using `<markdown file="…">`:
+  change only the Markdown preprocessor's line-break handling and confirm both rendered
+  outputs update without touching their inputs or restarting, while unrelated modules
+  retain their state.
+  References: [Vite environments](https://vite.dev/guide/api-environment-frameworks),
+  [Vite HMR](https://vite.dev/guide/api-hmr),
+  [Svelte preprocessors](https://svelte.dev/docs/svelte/svelte-compiler#preprocess).

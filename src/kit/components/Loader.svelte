@@ -2,7 +2,7 @@
   import LoadingOverlay from './LoadingOverlay.svelte';
   import { startLoad } from '#kit/router';
 
-  let { next, children, ...rest } = $props();
+  let { next, children, translucent = false, ...rest } = $props();
   let loaded = $state();
   let isLoading = $state(false);
 
@@ -19,12 +19,14 @@
       // Omitting load supplies ready content; an explicitly undefined load must fail.
       if ('load' in view) {
         const module = await view.load();
+
+        // Simulate slow loading using the same delay (milliseconds) as Router.
+        const loadingDelay = window.config?.loadingDelay || 0;
+        if (loadingDelay) await new Promise(resolve => setTimeout(resolve, loadingDelay));
+
         result = { ...view, loadedComponent: module.default };
       }
 
-      // Simulate slow loading using the same delay (milliseconds) as Router.
-      const loadingDelay = window.config?.loadingDelay || 0;
-      if (loadingDelay) await new Promise(resolve => setTimeout(resolve, loadingDelay));
 
       if (active) {
         loaded = result;
@@ -48,7 +50,7 @@
   });
 
   function fadeTimeout() {
-    // Match the 0.4s opacity transition: keep the old view's height while it fades out.
+    // Skip the overlay on fast loads and allow the default content fade to finish.
     return new Promise(resolve => setTimeout(resolve, 400));
   }
 </script>
@@ -60,34 +62,26 @@
     /* Keep the overlay's z-index inside the Loader, below the page header. */
     isolation: isolate;
 
-    > div {
+    > :global(:not(.overlay)) {
       transition: opacity 0.4s linear;
-
-      &.isLoading {
-        opacity: 0;
-      }
     }
-  }
 
-  LoadingOverlay.initial {
-    /* With no previous content, the overlay itself must give the region a height. */
-    position: relative;
-    min-height: inherit;
+    &.isLoading:not(.translucent) > :global(:not(.overlay)) {
+      opacity: 0;
+    }
+
   }
 </style>
 
-<div {...rest}>
+<div class:isLoading class:translucent inert={isLoading} {...rest}>
   {if loaded}
-    <!-- Retain layout during loading without leaving invisible controls interactive. -->
-    <div class:isLoading inert={isLoading}>
-      {render children(loaded)}
-    </div>
+    {render children(loaded)}
     {if isLoading}
       {await fadeTimeout() then}
-        <LoadingOverlay partial showLogo={false} />
+        <LoadingOverlay showLogo={false} {translucent} class="overlay" />
       {/await}
     {/if}
   {else}
-    <LoadingOverlay partial showLogo={false} class="initial" />
+    <LoadingOverlay showLogo={false} class="overlay" />
   {/if}
 </div>
