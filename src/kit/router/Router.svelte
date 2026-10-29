@@ -1,5 +1,5 @@
 <script context="module">
-  import { tick, setContext } from 'svelte';
+  import { tick, setContext, onDestroy } from 'svelte';
   import { writable, get } from 'svelte/store';
   import { SvelteSet } from 'svelte/reactivity';
 
@@ -80,6 +80,7 @@
       path = base + path;
     }
     if (_currentPath !== path.slice(base.length)) {
+      // TODO: beforeNavigate fires only for navigate(): back and forward never reach it
       const beforeNavigateEvent = new CustomEvent('beforeNavigate', {
         detail: { path, currentPath: _currentPath }
       });
@@ -92,6 +93,16 @@
 
   let routes = {};
   let _currentComponent = null;
+
+  // The callbacks registered with onPageChange()
+  const pageChangeCallbacks = new Set();
+
+  // Runs fn right before the current page is replaced by another one: the old page is still there, the next
+  // one not created yet. Called during a component's initialisation, like onDestroy, and removed with it
+  export function onPageChange(fn) {
+    pageChangeCallbacks.add(fn);
+    onDestroy(() => pageChangeCallbacks.delete(fn));
+  }
 
   function resolveRoute(path) {
     if (routes[path]) return routes[path];
@@ -156,6 +167,7 @@
         //const html = renderComponentToHTML(loadedComponent.default, { meta: meta });
         //console.log('HTML', html, loadedComponent, loadedComponent.default);
 
+        for (const fn of pageChangeCallbacks) fn();
         currentComponent.update(_ => {
           //_currentComponent = component
           // Switch to the new component
@@ -217,7 +229,7 @@
 </script>
 
 <script>
-  import { onMount, onDestroy } from 'svelte';
+  import { onMount } from 'svelte';
 
   import LoadingOverlay from '#kit/components/LoadingOverlay.svelte';
   import DefaultLayout from '#kit/components/Layout.svelte';
@@ -228,13 +240,6 @@
   // svelte-ignore state_referenced_locally
   routes = _routes;
 
-  // pageConfig is the current page's display config: pages getContext('pageConfig')
-  // and set their own preferences on it (e.g. contrast), and the Layout reads it
-  // to render accordingly. The Router owns it because it owns the current page; it
-  // is never reassigned, so every consumer shares the same reactive proxy.
-  let pageConfig = $state({ showHeader: true, showFooter: true, contrast: false });
-
-  setContext('pageConfig', pageConfig);
   setContext('isLoading', isLoading);
 
   function handleLinkClick(event) {
@@ -308,7 +313,7 @@
 </script>
 
 {if initialized}
-  <Layout {pageConfig}>
+  <Layout let:layoutConfig>
   {if $isLoading}
     {await fadeTimeout() then}
       <LoadingOverlay showLogo={false} />
@@ -319,7 +324,7 @@
     <main class="container" style="height:100vh"></main>
   {else if $currentComponent}
     {@const Component=$currentComponent}
-    <Component {meta} />
+    <Component {meta} {layoutConfig} />
   {else}
     <main class="container"><h1>Error: Component is not defined or failed to load.</h1></main>
   {/if}

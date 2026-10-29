@@ -1,13 +1,19 @@
 <script>
-  // Minimal default layout: renders the routed page plus the toast host, and
-  // nothing else. It's the near-empty fallback used by Router when no Layout
-  // is passed. Real sites provide their own Layout (header, nav, footer, …)
-  // and hand it to <Router {routes} {Layout} />.
+  // Minimal default layout, real sites should provide their own.
   import Toaster from './Toasts.svelte';
+  import { onPageChange } from '#kit/router/index.js';
 
   let { children } = $props();
+
+  // The flags this layout reads and their defaults
+  const defaults = { showHeader: true, showFooter: true, contrast: false };
+
+  //Layout configuration can be overridden by individual pages; each page starts from the defaults
+  const layoutConfig = $state({ ...defaults });
+  onPageChange(() => Object.assign(layoutConfig, defaults));
+
 </script>
 
-{@render children()}
+{@render children(layoutConfig)}
 
 <Toaster />

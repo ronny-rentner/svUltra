@@ -11,4 +11,5 @@ export {
   baseUrl,
   getCurrentPath,
   navigate,
+  onPageChange,
 } from './Router.svelte';
