@@ -22,9 +22,11 @@ function assertSourceLocation(result, original, token) {
 
 test('maps source after inserted annotations through the complete preprocessor chain', async () => {
   const content = '<script>\n  let { meta } = $props();\n  meta({ title: "Title" });\n</script>\n<p>Original text</p>';
-  const result = await preprocess(content, svultraPreprocess(), { filename: 'Test.svelte' });
+  // Inserts a line before the call, so everything after it is shifted in the output
+  const replacements = [[/^([ \t]*)meta\(/m, '$1// inserted\n$1meta(']];
+  const result = await preprocess(content, svultraPreprocess({ replacements }), { filename: 'Test.svelte' });
   assertSourceLocation(result, content, 'Original text');
-  const withMarkdown = await preprocess(content, svultraPreprocess({ markdown: {} }), { filename: 'Test.svelte' });
+  const withMarkdown = await preprocess(content, svultraPreprocess({ replacements, markdown: {} }), { filename: 'Test.svelte' });
   assertSourceLocation(withMarkdown, content, '<p>');
 });
 
@@ -173,23 +175,6 @@ test('expands every default block-syntax shorthand (default)', () => {
 
 test('expands multiple constants in one tag (default)', () => {
   assert.equal(run('{const a = 1, b = 2}', undefined), '{@const a = 1} {@const b = 2}');
-});
-
-test('prepends svelte-ignore to a bare meta() call (default)', () => {
-  assert.equal(
-    run('  meta({ title: "X" });', undefined),
-    '  // svelte-ignore state_referenced_locally\n  meta({ title: "X" });'
-  );
-});
-
-test('does not double-annotate an already-ignored meta() call (default)', () => {
-  const src = '  // svelte-ignore state_referenced_locally\n  meta({ title: "X" });';
-  assert.equal(run(src, undefined), src);
-});
-
-test('does not annotate a meta function declaration or a destructure (default)', () => {
-  assert.equal(run('export function meta(opts) {}', undefined), 'export function meta(opts) {}');
-  assert.equal(run('  let { meta } = $props();', undefined), '  let { meta } = $props();');
 });
 
 test('rewrites the store shorthand on components (default)', () => {

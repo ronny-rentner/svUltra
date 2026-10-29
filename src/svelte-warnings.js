@@ -22,6 +22,11 @@ const redundantWarningCodes = [
   'a11y_missing_attribute',
   'a11y_no_noninteractive_tabindex',
   // non-a11y
+  // Fires on every read of a prop or state at the top level of a component's script, such as each page's meta()
+  // call or a computation from props. The script runs once per instance by Svelte's design, so a read there
+  // takes the value once, as any Svelte author expects. A value that should follow a prop is written as $derived
+  // where it is needed; marking every intended read-once with untrack() would only repeat what the script means
+  'state_referenced_locally',
   'script_context_deprecated',
   'attribute_illegal_colon',
   'element_invalid_self_closing_tag',
