@@ -10,3 +10,6 @@ export { default as printSourceCode } from './src/preprocessors/print.js';
 // Shared svelte.config.js helper: an `onwarn` that silences svUltra's standard
 // set of redundant (mostly a11y) Svelte warnings.
 export { silenceRedundantWarnings } from './src/svelte-warnings.js';
+
+// Shared vite.config.js plugin: silences Svelte's runtime warning ownership_invalid_mutation.
+export { silenceOwnershipMutationPlugin } from './src/svelte-warnings.js';

@@ -5,7 +5,6 @@
   let { highlight, children, expanded = $bindable(false), ...rest } = $props();
 
   // snippetToHtml returns a writable; the template reads $html to subscribe.
-  // svelte-ignore state_referenced_locally
   const html = snippetToHtml(children);
 
   function mark(s) {

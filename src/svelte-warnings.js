@@ -49,3 +49,40 @@ export function silenceRedundantWarnings(extraCodes = []) {
     handler(warning);
   };
 }
+
+/**
+ * Vite plugin that silences Svelte's runtime warning `ownership_invalid_mutation`, which `onwarn` cannot reach.
+ *
+ * In dev, Svelte warns when a component writes into a `$state` object it got as a prop without `bind:`. The warning
+ * treats every such object as owned by its creator, an ownership JavaScript does not have: a function that receives
+ * an object can change its contents, and the caller sees the change, as in most languages. Protection is a decision
+ * of the owner, made once at the object, as `private`, `readonly` or `Object.freeze` are. Svelte instead warns at every
+ * receiver by default and gives an owner who wants to share no way to say so. svUltra passes objects down on purpose
+ * for the child to fill in, such as the Layout's layoutConfig that a page sets, and Svelte has no option to turn the
+ * check off.
+ *
+ * The compiled component creates one validator and routes every such write through its `mutation`; this keeps the
+ * validator and swaps its `mutation` for one that only returns the write's result. Its binding check stays. Depends
+ * on the compiled code of Svelte 5.57: `$.create_ownership_validator($$props)`. A production build has no validator.
+ *
+ *   plugins: [svelte(), silenceOwnershipMutationPlugin()]
+ */
+export function silenceOwnershipMutationPlugin() {
+  return {
+    name: 'svultra:silence-ownership-mutation',
+    apply: 'serve',
+    // After vite-plugin-svelte compiled the component
+    enforce: 'post',
+
+    transform(code, id) {
+      if (!id.endsWith('.svelte') || !code.includes('$.create_ownership_validator($$props)')) {
+        return;
+      }
+      // A function, not a replacement string, which would read `$$` as an escaped `$`
+      return code.replace(
+        '$.create_ownership_validator($$props)',
+        match => `Object.assign(${match}, { mutation: (prop, path, result) => result })`
+      );
+    },
+  };
+}
