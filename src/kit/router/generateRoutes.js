@@ -11,7 +11,9 @@ export default function generateRoutesPlugin(userOptions = {}) {
     urlPrefix: '',
     nestedRoutes: true,
     outputFile: './src/generatedRoutes.svelte.js',
-    routeRenames: {}
+    routeRenames: {},
+    // The first is the main language with its pages in pagesDir; each other one has its pages in a folder named after it
+    languages: ['en']
   };
 
   const options = { ...defaultOptions, ...userOptions };
@@ -92,9 +94,11 @@ export default function generateRoutesPlugin(userOptions = {}) {
     const generatedRoutes = await generateRoutes(pagesDir, options, commonDir);
     const renamedRoutes = applyRouteRenames(generatedRoutes, options.routeRenames);
 
-    const routeFileContent = `export const routes = {\n${Object.entries(renamedRoutes)
-      .map(([path, importPath]) => `  "${path}": ${importPath}`)
-      .join(',\n')}\n};\n`;
+    const routeFileContent =
+      `export const languages = ${JSON.stringify(options.languages)};\n\n` +
+      `export const routes = {\n${Object.entries(renamedRoutes)
+        .map(([path, { name, lang, import: importFunction }]) => `  "${path}": { name: '${name}', lang: '${lang}', import: ${importFunction} }`)
+        .join(',\n')}\n};\n`;
 
     try {
       const existingContent = await fs.readFile(outputFilePath, 'utf8').catch(() => null);
@@ -141,7 +145,7 @@ async function generateRoutes(dir, options, commonDir, baseRoute = '') {
         const routePath = basename === 'index' ? baseRoute || '/' : `${baseRoute}/${kebabCaseName}`;
         const fullPath = `${options.urlPrefix}${routePath}`;
         const relativeFilePath = `.${filePath.replace(commonDir, '').replace(/\\/g, '/')}`;
-        routes[fullPath] = `() => import('${relativeFilePath}')`;
+        routes[fullPath] = pageEntry(`${baseRoute}/${basename}`, `() => import('${relativeFilePath}')`, options.languages);
       }
     }
   }
@@ -153,11 +157,19 @@ function toKebabCase(str) {
   return str.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase();
 }
 
+// A page is in the language its top-level folder names, if that is one of the other languages, else in the main one.
+// Its name is its file path below the language folder, without the extension, so a page and its translations share it
+function pageEntry(pagePath, importFunction, languages) {
+  const parts = pagePath.split('/').slice(1);
+  const lang = parts.length > 1 && languages.slice(1).includes(parts[0]) ? parts.shift() : languages[0];
+  return { name: parts.join('/'), lang, import: importFunction };
+}
+
 function applyRouteRenames(routes, renames) {
   const renamedRoutes = {};
-  for (const [path, importPath] of Object.entries(routes)) {
+  for (const [path, entry] of Object.entries(routes)) {
     const renamedPath = renames[path] || path;
-    renamedRoutes[renamedPath] = importPath;
+    renamedRoutes[renamedPath] = entry;
   }
   return renamedRoutes;
 }

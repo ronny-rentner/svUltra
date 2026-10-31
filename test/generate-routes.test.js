@@ -28,13 +28,40 @@ test('continues scanning when listed directories disappear', async (t) => {
 
   // Dot-prefixed pages are included; directories missing at scan time are omitted.
   assert.equal(write.mock.calls[0].arguments[1],
+    'export const languages = ["en"];\n\n' +
     'export const routes = {\n' +
-    '  "/home": () => import(\'.//pages/Home.svelte\'),\n' +
-    '  "/.draft": () => import(\'.//pages/.Draft.svelte\'),\n' +
-    '  "/guide": () => import(\'.//pages/guide/index.svelte\'),\n' +
-    '  "/guide/.draft": () => import(\'.//pages/guide/.Draft.svelte\')\n' +
+    '  "/home": { name: \'Home\', lang: \'en\', import: () => import(\'.//pages/Home.svelte\') },\n' +
+    '  "/.draft": { name: \'.Draft\', lang: \'en\', import: () => import(\'.//pages/.Draft.svelte\') },\n' +
+    '  "/guide": { name: \'guide/index\', lang: \'en\', import: () => import(\'.//pages/guide/index.svelte\') },\n' +
+    '  "/guide/.draft": { name: \'guide/.Draft\', lang: \'en\', import: () => import(\'.//pages/guide/.Draft.svelte\') }\n' +
     '};\n');
   assert.equal(warn.mock.callCount(), 3);
+});
+
+test('tags pages in a language folder with their language and the name they share with their translations', async (t) => {
+  const root = path.resolve('test/fixtures/routes');
+  const pagesDir = path.join(root, 'src/pages');
+  // A page only in the main language, one with a translation, and a main-language folder that is no language
+  const listings = {
+    [pagesDir]: ['Coaching.svelte', 'About.svelte', 'de', 'guide'],
+    [path.join(pagesDir, 'de')]: ['Coaching.svelte'],
+    [path.join(pagesDir, 'guide')]: ['index.svelte'],
+  };
+  t.mock.method(fs, 'readdir', async (dir) =>
+    listings[dir].map(name => ({ name, isDirectory: () => !name.endsWith('.svelte') })));
+  t.mock.method(fs, 'readFile', async () => '');
+  const write = t.mock.method(fs, 'writeFile', async () => {});
+
+  await generateRoutesPlugin({ languages: ['en', 'de'], routeRenames: { '/de/coaching': '/beratung' } }).configResolved({ root });
+
+  assert.equal(write.mock.calls[0].arguments[1],
+    'export const languages = ["en","de"];\n\n' +
+    'export const routes = {\n' +
+    '  "/coaching": { name: \'Coaching\', lang: \'en\', import: () => import(\'.//pages/Coaching.svelte\') },\n' +
+    '  "/about": { name: \'About\', lang: \'en\', import: () => import(\'.//pages/About.svelte\') },\n' +
+    '  "/beratung": { name: \'Coaching\', lang: \'de\', import: () => import(\'.//pages/de/Coaching.svelte\') },\n' +
+    '  "/guide": { name: \'guide/index\', lang: \'en\', import: () => import(\'.//pages/guide/index.svelte\') }\n' +
+    '};\n');
 });
 
 test('fails initial generation when the pages root is missing', async (t) => {
@@ -70,7 +97,7 @@ test('reports a watcher scan failure and processes the next change', async (t) =
     }
     return scan;
   });
-  t.mock.method(fs, 'readFile', async () => 'export const routes = {\n\n};\n');
+  t.mock.method(fs, 'readFile', async () => 'export const languages = ["en"];\n\nexport const routes = {\n\n};\n');
   const write = t.mock.method(fs, 'writeFile', async () => {});
   const error = t.mock.method(console, 'error', () => {});
   const watcher = new EventEmitter();
