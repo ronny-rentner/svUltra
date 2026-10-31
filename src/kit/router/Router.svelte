@@ -38,8 +38,16 @@
   export let currentComponent = writable();
   export let isLoading = writable(false);
   export let currentPath = writable();
+  // The route serving currentPath, as resolveRoute returns it: the entry with path, matchedPath and variants
+  export let currentRoute = writable();
+  // The visitor's language, as the site passes it in its language prop
+  export const currentLanguage = writable();
   // Internal copy of currentPath to make it easier to get it
   let _currentPath = $state();
+  // Internal copy of currentLanguage, translatePath's default
+  let _currentLanguage = $state();
+  // The position of the visitor's language among the site's languages, worked out once per language change
+  const _currentLanguageIndex = $derived(languages.indexOf(_currentLanguage));
 
   const pendingLoads = new SvelteSet();
   let pendingScroll = $state();
@@ -72,27 +80,72 @@
     return typeof value === 'function';
   }
 
-  export function navigate(path) {
+  // language: translates the path to that language if it isn't in that language yet
+  export function navigate(path, language) {
     const base = getBaseUrl();
     //console.log('navigate()', path);
-    if (!path.startsWith(base)) {
-      // Construct full URL if we got only the URL path.
-      path = base + path;
+    // The path within the site, as routes are keyed; a link's href carries the base
+    if (path.startsWith(base)) {
+      path = path.slice(base.length);
     }
-    if (_currentPath !== path.slice(base.length)) {
+    if (language) {
+      path = translatePath(path, language);
+    }
+    if (_currentPath !== path) {
       // TODO: beforeNavigate fires only for navigate(): back and forward never reach it
       const beforeNavigateEvent = new CustomEvent('beforeNavigate', {
-        detail: { path, currentPath: _currentPath }
+        detail: { path: base + path, currentPath: _currentPath }
       });
       window.dispatchEvent(beforeNavigateEvent);
 
-      window.history.pushState(history?.state, '', path);
+      window.history.pushState(history?.state, '', base + path);
       window.dispatchEvent(new Event('popstate'));
     }
   }
 
+  // The path of the same page in that language, by default the visitor's; the path itself where the page is in that
+  // language already or does not exist in it
+  export function translatePath(path, language = _currentLanguage) {
+    const route = resolveRoute(path, false);
+    if (route.lang === language) {
+      return path;
+    }
+    return variantPath(route, language) ?? path;
+  }
+
+  // translatePath with the base, for a link's href
+  export function translateHref(path, language) {
+    return base + translatePath(path, language);
+  }
+
+  // The text in the visitor's language, the texts in the order of the site's languages: translateText('Coaching',
+  // 'Beratung'); a missing text falls back to the first
+  export function translateText(...texts) {
+    return texts[_currentLanguageIndex] ?? texts[0];
+  }
+
   let routes = {};
+  // Each page's path in every language it exists in, by the page's name; built once from routes
+  let pages = {};
+  // The site's languages, the main one first
+  let languages = [];
   let _currentComponent = null;
+
+  function pathsByName(routes) {
+    const paths = {};
+    for (const [path, route] of Object.entries(routes)) {
+      // Only a named entry pairs with its translations. A bare import function is skipped by its type: its own name
+      // property is the key it was written under, not a page name
+      if (typeof route === 'function' || !route.name) {
+        continue;
+      }
+      if (!paths[route.name]) {
+        paths[route.name] = {};
+      }
+      paths[route.name][route.lang] = path;
+    }
+    return paths;
+  }
 
   // The callbacks registered with onPageChange()
   const pageChangeCallbacks = new Set();
@@ -104,26 +157,71 @@
     onDestroy(() => pageChangeCallbacks.delete(fn));
   }
 
-  function resolveRoute(path) {
-    if (routes[path]) return routes[path];
+  function resolveRoute(path, includeVariants = true) {
+    let route = routes[path];
+    // The key in routes that serves the path: the path itself, a wildcard such as '/articles/*', or '*'
+    let matchedPath = path;
 
-    /* wildcard matches like '/guide/*' */
-    let best = null;
-    let bestLen = -1;
+    if (!route) {
+      /* wildcard matches like '/guide/*' */
+      let best = null;
+      let bestLen = -1;
 
-    for (const key in routes) {
-      if (!key.endsWith('*') || key === '*') continue;
-      const base = key.slice(0, -2); // drop '*'
-      if (path === base || path.startsWith(base + '/')) {
-        if (base.length > bestLen) {
-          bestLen = base.length;
-          best = routes[key];
+      for (const key in routes) {
+        if (!key.endsWith('*') || key === '*') continue;
+        const base = key.slice(0, -2); // drop '*'
+        if (path === base || path.startsWith(base + '/')) {
+          if (base.length > bestLen) {
+            bestLen = base.length;
+            best = routes[key];
+            matchedPath = key;
+          }
         }
+      }
+
+      if (best) {
+        route = best;
+      } else {
+        route = routes['*'];
+        matchedPath = '*';
       }
     }
 
-    return best || routes['*'];
+    // A hand-written map may hold the import function directly; callers always get the generated entry's form
+    if (typeof route === 'function') {
+      route = { import: route };
+    }
 
+    const resolved = { ...route, path, matchedPath };
+
+    if (includeVariants) {
+      // One variant per site language, in the order of languages: the page's version in that language, or the page itself
+      // where it does not exist in it
+      resolved.variants = languages.map(lang => ({ lang, path: variantPath(resolved, lang) ?? path }));
+    }
+
+    return resolved;
+  }
+
+  // The URL of the resolved route's page in lang, undefined where the page does not exist in it.
+  // A named entry is always in pages, which is built from the same routes
+  function variantPath(route, lang) {
+    if (route.name && pages[route.name][lang]) {
+      return urlOf(pages[route.name][lang], route.path, route.matchedPath);
+    }
+  }
+
+  // The URL of a route key for the current path. A wildcard key keeps the part of the path that the matched key's
+  // star stands for: '/de/artikel/*' for '/articles/61' matched by '/articles/*' is '/de/artikel/61'.
+  // The catch-all '*' has no URL of its own, so it keeps the path
+  function urlOf(key, path, matchedPath) {
+    if (key === '*') {
+      return path;
+    }
+    if (key.endsWith('/*')) {
+      return key.slice(0, -2) + path.slice(matchedPath.length - 2);
+    }
+    return key;
   }
 
 
@@ -136,10 +234,11 @@
     if (event) delayHistoryScroll(event);
     const path = getCurrentPath(event);
     //let component = routes[path] || routes['*'];
-    let component = resolveRoute(path);
+    const route = resolveRoute(path);
+    let component = route.import;
     if (!isSvelteComponent(component)) {
       console.error('Not a Svelte component: ', component, path);
-      component = routes['*'];
+      component = resolveRoute('*').import;
     }
     if (component != _currentComponent) {
       //console.log('updateComponent()', path, component);
@@ -154,6 +253,7 @@
       // Load the new component
       try {
         currentPath.set(path);
+        currentRoute.set(route);
         _currentPath = path;
         const loadedComponent = await component();
         //console.log('loadedComponent', loadedComponent, loadedComponent.default);
@@ -168,6 +268,11 @@
         //console.log('HTML', html, loadedComponent, loadedComponent.default);
 
         for (const fn of pageChangeCallbacks) fn();
+        // The page's language on <html>, set as the page is swapped in so they change together; a route without a
+        // language, as a hand-written one, leaves the served one
+        if (route.lang) {
+          document.documentElement.lang = route.lang;
+        }
         currentComponent.update(_ => {
           //_currentComponent = component
           // Switch to the new component
@@ -195,6 +300,7 @@
       // Keep the pathname current when the same page (component) handles a different URL.
       // This update lets existing Loaders register new loads before the post-render $effect runs.
       currentPath.set(path);
+      currentRoute.set(route);
       _currentPath = path;
     }
   }
@@ -234,11 +340,18 @@
   import LoadingOverlay from '#kit/components/LoadingOverlay.svelte';
   import DefaultLayout from '#kit/components/Layout.svelte';
 
-  const { routes: _routes , Layout = DefaultLayout } = $props();
+  const { routes: _routes, languages: _languages = [], language, Layout = DefaultLayout } = $props();
   // `routes` is the static, build-generated route table; bridging it once into
   // the module-level resolver is by design (see module scope) and it never changes.
-  // svelte-ignore state_referenced_locally
   routes = _routes;
+  pages = pathsByName(routes);
+  // The site's languages are static too and bridged the same way
+  languages = _languages;
+  // The visitor's language is not static: the site's value changes with their choice, and both copies follow it
+  $effect.pre(() => {
+    currentLanguage.set(language);
+    _currentLanguage = language;
+  });
 
   setContext('isLoading', isLoading);
 
@@ -311,6 +424,15 @@
   }
 
 </script>
+
+<!-- TODO: fix Svelte, it rejects svelte:head inside a block, so the if that wraps the page is repeated inside it -->
+<svelte:head>
+  {if initialized}
+    {each $currentRoute.variants as { lang, path }}
+      {if path !== $currentRoute.path}<link rel="alternate" hreflang={lang} href={location.origin + base + path} />{/if}
+    {/each}
+  {/if}
+</svelte:head>
 
 {if initialized}
   <Layout let:layoutConfig>
