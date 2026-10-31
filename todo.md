@@ -1,5 +1,21 @@
 # svUltra TODO
 
+- The toast library is insourced as it was in `src/kit/components/toast/`, from `@zerodevx/svelte-toast` 0.9.6 (ISC,
+  its LICENSE kept), with two changes marked `svUltra:`: in `ToastItem.svelte` a toast can take a snippet as `children`,
+  in `SvelteToast.svelte` an `outro` option sets the fade-out's parameters, as `intro` sets the fly-in's.
+  Update it to Svelte 5: runes instead of `export let` and `$:`, event attributes instead of `on:`, snippets instead of
+  `svelte:component`, which lets the `component` option go.
+
+- The comment rule in `demo/svelte.config.js` and `demo-kit/svelte.config.js`, `[/\/\*[\s\S]*?\*\//gm, '']`, runs
+  through syntaxSugar over the whole `.svelte` file and takes every `/*` as the start of a comment, also one inside a
+  string, a regex literal or a `//` comment, and deletes the code up to the next `*/`. Seen in `Router.svelte`: a line
+  comment with `'/articles/*'` deleted the code down to the wildcard block comment below it, and the compile failed with
+  "'return' outside of function". It also removes `/* … */` from markup text, where it is no comment. The starter and
+  the sites copied the rule; aylinschaer.de has it commented out. Proposed fix: a `stripComments` option in
+  syntaxSugar, no new preprocessor: script comments from Svelte's `parse(content, { modern: true }).comments`, which
+  skips strings and regex literals, removed with MagicString; CSS comments by a scan over the `<style>` range that
+  skips quoted strings; markup untouched. Open: whether `//` comments go too, and keeping `svelte-ignore` comments.
+
 - Structural pseudo-classes in a scoped style count elements a child component renders.
   Verified in carbon.berlin's `Home.svelte`: `section:nth-of-type(2)` styled the page's first
   own section, because `HeroBanner`'s `<section>` counts as the first, and
