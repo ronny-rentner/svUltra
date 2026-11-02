@@ -127,7 +127,7 @@
   let routes = {};
   // Each page's path in every language it exists in, by the page's name; built once from routes
   let pages = {};
-  // The site's languages, the main one first
+  // The site's languages, in the order translateText takes its texts
   let languages = [];
   let _currentComponent = null;
 

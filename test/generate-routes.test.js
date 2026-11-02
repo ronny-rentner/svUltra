@@ -29,6 +29,7 @@ test('continues scanning when listed directories disappear', async (t) => {
   // Dot-prefixed pages are included; directories missing at scan time are omitted.
   assert.equal(write.mock.calls[0].arguments[1],
     'export const languages = ["en"];\n\n' +
+    'export const mainLanguage = "en";\n\n' +
     'export const routes = {\n' +
     '  "/home": { name: \'Home\', lang: \'en\', import: () => import(\'.//pages/Home.svelte\') },\n' +
     '  "/.draft": { name: \'.Draft\', lang: \'en\', import: () => import(\'.//pages/.Draft.svelte\') },\n' +
@@ -56,11 +57,37 @@ test('tags pages in a language folder with their language and the name they shar
 
   assert.equal(write.mock.calls[0].arguments[1],
     'export const languages = ["en","de"];\n\n' +
+    'export const mainLanguage = "en";\n\n' +
     'export const routes = {\n' +
     '  "/coaching": { name: \'Coaching\', lang: \'en\', import: () => import(\'.//pages/Coaching.svelte\') },\n' +
     '  "/about": { name: \'About\', lang: \'en\', import: () => import(\'.//pages/About.svelte\') },\n' +
     '  "/beratung": { name: \'Coaching\', lang: \'de\', import: () => import(\'.//pages/de/Coaching.svelte\') },\n' +
     '  "/guide": { name: \'guide/index\', lang: \'en\', import: () => import(\'.//pages/guide/index.svelte\') }\n' +
+    '};\n');
+});
+
+test('tags the pages root with the main language when it is not the first language', async (t) => {
+  const root = path.resolve('test/fixtures/routes');
+  const pagesDir = path.join(root, 'src/pages');
+  // A main-language page with a translation in the first language's folder, and one only in the main language
+  const listings = {
+    [pagesDir]: ['Coaching.svelte', 'Harmony.svelte', 'en'],
+    [path.join(pagesDir, 'en')]: ['Coaching.svelte'],
+  };
+  t.mock.method(fs, 'readdir', async (dir) =>
+    listings[dir].map(name => ({ name, isDirectory: () => !name.endsWith('.svelte') })));
+  t.mock.method(fs, 'readFile', async () => '');
+  const write = t.mock.method(fs, 'writeFile', async () => {});
+
+  await generateRoutesPlugin({ languages: ['en', 'de'], mainLanguage: 'de' }).configResolved({ root });
+
+  assert.equal(write.mock.calls[0].arguments[1],
+    'export const languages = ["en","de"];\n\n' +
+    'export const mainLanguage = "de";\n\n' +
+    'export const routes = {\n' +
+    '  "/coaching": { name: \'Coaching\', lang: \'de\', import: () => import(\'.//pages/Coaching.svelte\') },\n' +
+    '  "/harmony": { name: \'Harmony\', lang: \'de\', import: () => import(\'.//pages/Harmony.svelte\') },\n' +
+    '  "/en/coaching": { name: \'Coaching\', lang: \'en\', import: () => import(\'.//pages/en/Coaching.svelte\') }\n' +
     '};\n');
 });
 
@@ -97,7 +124,7 @@ test('reports a watcher scan failure and processes the next change', async (t) =
     }
     return scan;
   });
-  t.mock.method(fs, 'readFile', async () => 'export const languages = ["en"];\n\nexport const routes = {\n\n};\n');
+  t.mock.method(fs, 'readFile', async () => 'export const languages = ["en"];\n\nexport const mainLanguage = "en";\n\nexport const routes = {\n\n};\n');
   const write = t.mock.method(fs, 'writeFile', async () => {});
   const error = t.mock.method(console, 'error', () => {});
   const watcher = new EventEmitter();

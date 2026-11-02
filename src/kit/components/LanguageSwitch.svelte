@@ -25,10 +25,6 @@
 <span {...rest}>
   {each $currentRoute.variants as variant, i}
     {if i > 0}<span>&nbsp;·&nbsp;</span>{/if}
-    {if variant.lang === $currentLanguage}
-      <a href={baseUrl + $currentRoute.path} hreflang={variant.lang} class="active" {onclick}>{variant.lang}</a>
-    {else}
-      <a href={baseUrl + variant.path} hreflang={variant.lang} {onclick}>{variant.lang}</a>
-    {/if}
+    <a href={baseUrl + variant.path} hreflang={variant.lang} class:active={variant.lang === $currentLanguage} {onclick}>{variant.lang}</a>
   {/each}
 </span>
