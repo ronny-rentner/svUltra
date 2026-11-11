@@ -53,13 +53,11 @@
   "peerDependencies": {
     "svelte": "*",
     "@picocss/pico": "*",
-    "@iconify/svelte": "*",
-    "trap-focus-svelte": "*"
+    "@iconify/svelte": "*"
   },
   "peerDependenciesMeta": {
     "@picocss/pico": { "optional": true },
-    "@iconify/svelte": { "optional": true },
-    "trap-focus-svelte": { "optional": true }
+    "@iconify/svelte": { "optional": true }
   },
   "dependencies": {
     "chalk": "*",

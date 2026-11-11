@@ -247,7 +247,6 @@
       // otherwise child layout changes might trigger re-loading the same component
       _currentComponent = component
 
-      const finishLoad = startLoad();
       // Show the loading overlay
       //console.log('isLoading true');
       isLoading.set(true);
@@ -294,8 +293,6 @@
           pendingScroll = undefined;
         }
         throw error;
-      } finally {
-        finishLoad();
       }
     } else {
       // Keep the pathname current when the same page (component) handles a different URL.
@@ -395,7 +392,7 @@
   $effect(() => {
     // Check after rendering, when new or updated Loaders have registered through their pre-effects.
     // Resolve pendingScroll for either branch of updateComponent(), allowing the browser to scroll.
-    if (pendingScroll && pendingLoads.size === 0) {
+    if (pendingScroll && !$isLoading && pendingLoads.size === 0) {
       pendingScroll.resolve();
       pendingScroll = undefined;
     }

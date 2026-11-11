@@ -71,6 +71,9 @@ Automatically merge class attributes from multiple sources:
 <Button class:primary={isPrimary} class="large" {...props} />
 ```
 
+Plain elements keep Svelte's behaviour: a class from the spread replaces a static `class`;
+`class:name={1}` keeps both. Better: need no class.
+
 → [Class Merge Documentation](./docs/class-merge.md)
 
 ### 3. Attribute Transformer
@@ -306,6 +309,9 @@ Tab and Shift+Tab follow the page's normal order.
 
 `use:accordion={{ trapFocus: true }}` opts into trapping focus inside the open panel,
 as used by the user menu. Closing or removing the panel releases the trap.
+
+`use:accordion={{ hover: true }}` also opens the panel while the mouse is over the
+`<details>` and closes it shortly after the mouse left. Click and Escape keep working.
 
 The action adds `.accordion`; its `accordion.css` handles clipping, summary spacing
 and the closing arrow. General Pico colour and focus fixes live in the application's

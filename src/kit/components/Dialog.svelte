@@ -3,7 +3,7 @@ import { onMount, onDestroy } from 'svelte';
 import Button from './Button.svelte';
 
 /* TODO: merge focus functions */
-import { trapFocus } from 'trap-focus-svelte';
+import { trapFocus } from '#kit/actions/trapFocus/index.js';
 import autoFocus from '#kit/actions/autofocus.js';
 
 let {
