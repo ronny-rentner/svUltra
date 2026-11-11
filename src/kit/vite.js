@@ -1,4 +1,5 @@
 import path from 'path';
+import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 // This file sits at <svultra>/src/kit/vite.js
@@ -17,6 +18,34 @@ export default function watchSourcePlugin() {
         return;
       }
       server.watcher.add(svultraDir);
+    },
+  };
+}
+
+// Git's index lock in the nearest .git folder at or above the Vite root
+function findGitLockFile(root) {
+  for (let dir = root; dir !== path.dirname(dir); dir = path.dirname(dir)) {
+    if (fs.existsSync(path.join(dir, '.git'))) return path.join(dir, '.git', 'index.lock');
+  }
+}
+
+// Reports through Vite's file watcher when git takes and releases its index lock
+export function gitLockPlugin() {
+  return {
+    name: 'svultra:git-lock',
+    apply: 'serve',
+
+    // Vite ignores everything below .git; the negation lifts that for the lock file only
+    config: () => ({ server: { watch: { ignored: ['!**/.git/index.lock'] } } }),
+
+    configureServer(server) {
+      const lockFile = findGitLockFile(server.config.root);
+      if (!lockFile) return;
+      const { logger } = server.config;
+      // Vite watches only its root, and the checkout's .git can lie above it
+      server.watcher.add(lockFile);
+      server.watcher.on('add', (file) => file === lockFile && logger.info('git locked', { timestamp: true }));
+      server.watcher.on('unlink', (file) => file === lockFile && logger.info('git unlocked', { timestamp: true }));
     },
   };
 }

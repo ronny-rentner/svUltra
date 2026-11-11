@@ -226,8 +226,9 @@
 
 
   async function updateComponent(event) {
-    // Leave non-interceptable navigation to the browser; initial loading has no event.
-    if (event && !event.canIntercept) return;
+    // Leave non-interceptable navigation to the browser; initial loading has no event. A reload, as Vite's after
+    // a server restart, asks for a fresh copy of the page, which only the browser can load.
+    if (event && (!event.canIntercept || event.navigationType === 'reload')) return;
     // Delay scrolling for both component replacements and URL changes within the same component.
     // Both branches leave readiness to the $effect below: after rendering and all registered
     // loads finish, it resolves pendingScroll so the browser can scroll.
